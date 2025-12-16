@@ -1,6 +1,3 @@
-install:
-	mvn clean install
-
 iterate:
 	@echo iterating over all of the local warcs:
 	@echo
