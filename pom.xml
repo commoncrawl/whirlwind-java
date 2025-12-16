@@ -1,49 +1,75 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+		xmlns="http://maven.apache.org/POM/4.0.0"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.commoncrawl</groupId>
-    <artifactId>whirlwind-java</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
-    <name>Whirlwind Tour Java Tools</name>
+	<groupId>org.commoncrawl</groupId>
+	<artifactId>whirlwind-java</artifactId>
+	<version>0.1.0-SNAPSHOT</version>
+	<name>Whirlwind Tour Java Tools</name>
 
-    <properties>
-        <maven.compiler.release>11</maven.compiler.release>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+	<properties>
+		<maven.compiler.release>11</maven.compiler.release>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.netpreserve</groupId>
-            <artifactId>jwarc</artifactId>
-            <version>0.32.0</version>
-        </dependency>
-    </dependencies>
+	<dependencies>
+		<dependency>
+			<groupId>org.netpreserve</groupId>
+			<artifactId>jwarc</artifactId>
+			<version>0.32.0</version>
+		</dependency>
+	</dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <release>${maven.compiler.release}</release>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.3.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>org.commoncrawl.whirlwind.ReadWARC</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.11.0</version>
+				<configuration>
+					<release>${maven.compiler.release}</release>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.3.0</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>org.commoncrawl.whirlwind.ReadWARC</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.diffplug.spotless</groupId>
+				<artifactId>spotless-maven-plugin</artifactId>
+				<version>2.46.1</version>
+				<configuration>
+					<pom>
+						<!-- These are the defaults, you can override if you want -->
+						<includes>
+							<include>pom.xml</include>
+						</includes>
+						<sortPom>
+							<indentAttribute>all</indentAttribute>
+							<keepBlankLines>true</keepBlankLines>
+							<expandEmptyElements>false</expandEmptyElements>
+							<nrOfIndentSpace>-1</nrOfIndentSpace>
+							<predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
+						</sortPom>
+					</pom>
+					<java>
+						<eclipse>
+							<file>${project.basedir}/eclipse-formatter.xml</file>
+						</eclipse>
+					</java>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>
-
