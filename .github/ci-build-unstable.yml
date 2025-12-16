@@ -13,7 +13,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '11'
-          distribution: 'adopt'
+          distribution: 'temurin'
           cache: 'mvn'
       - name: Build with Gradle
         run: mvn -B clean compile
