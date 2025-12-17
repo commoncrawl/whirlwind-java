@@ -16,7 +16,7 @@ iterate:
 # 	cdxj-indexer whirlwind.warc.gz > whirlwind.warc.cdxj
 # 	cdxj-indexer --records conversion whirlwind.warc.wet.gz > whirlwind.warc.wet.cdxj
 # 	cdxj-indexer whirlwind.warc.wat.gz > whirlwind.warc.wat.cdxj
-#
+
 # extract:
 # 	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
 # 	warcio extract --payload whirlwind.warc.gz 1023 > extraction.html
@@ -62,26 +62,26 @@ iterate:
 # 	@echo "warning! this might take 1-10 minutes"
 # 	python duck.py cloudfront
 #
-# wreck_the_warc:
-# 	@echo
-# 	@echo we will break and then fix this warc
-# 	cp whirlwind.warc.gz testing.warc.gz
-# 	rm -f testing.warc
-# 	gzip -d testing.warc.gz  # windows gunzip no work-a
-# 	@echo
-# 	@echo iterate over this uncompressed warc: works
-# 	python ./warcio-iterator.py testing.warc
-# 	@echo
-# 	@echo compress it the wrong way
-# 	gzip testing.warc
-# 	@echo
-# 	@echo iterating over this compressed warc fails
-# 	python ./warcio-iterator.py testing.warc.gz || /usr/bin/true
-# 	@echo
-# 	@echo "now let's do it the right way"
-# 	gzip -d testing.warc.gz
-# 	warcio recompress testing.warc testing.warc.gz
-# 	@echo
-# 	@echo and now iterating works
-# 	python ./warcio-iterator.py testing.warc.gz
-# 	@echo
+wreck_the_warc:
+	@echo
+	@echo we will break and then fix this warc
+	cp whirlwind.warc.gz testing.warc.gz
+	rm -f testing.warc
+	gzip -d testing.warc.gz  # windows gunzip no work-a
+	@echo
+	@echo iterate over this uncompressed warc: works
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc"
+	@echo
+	@echo compress it the wrong way
+	gzip testing.warc
+	@echo
+	@echo iterating over this compressed warc fails
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz" || /usr/bin/true
+	@echo
+	@echo "now let's do it the right way"
+	gzip -d testing.warc.gz
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="testing.warc testing.warc.gz"
+	@echo
+	@echo and now iterating works
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz"
+	@echo

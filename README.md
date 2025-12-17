@@ -212,6 +212,8 @@ We have two versions of the index: the CDX index and the columnar index. The CDX
 
 ### CDX(J) index
 
+**TBA**: Did not find a good java library that implements this feature, ideally can be implemented in jwarc
+
 The CDX index files are sorted plain-text files, with each line containing information about a single capture in the WARC. Technically, Common Crawl uses CDXJ index files since the information about each capture is formatted as JSON. We'll use CDX and CDXJ interchangeably in this tour for legacy reasons 💅
 
 We can create our own CDXJ index from the local WARCs by running:
@@ -278,8 +280,8 @@ As mentioned earlier, WARC/WET/WAT files look like they're gzipped, but they're 
 * creates a copy of one of the warc files in the repo
 * uncompresses it
 * recompresses it the wrong way
-* runs `warcio-iterator` over it to show that it triggers an error
-* recompresses it the right way using `warcio recompress`
+* runs `org.commoncrawl.whirlwind.ReadWARC` over it to show that it triggers an error (in fact in java it does not trigger an error... )
+* recompresses it the right way using `org.commoncrawl.whirlwind.RecompressWARC`
 * shows that this compressed file works
 
 Run
@@ -295,60 +297,45 @@ and read through the output. You should get something like the output below:
 we will break and then fix this warc
 cp whirlwind.warc.gz testing.warc.gz
 rm -f testing.warc
-gunzip testing.warc.gz
+gzip -d testing.warc.gz  # windows gunzip no work-a
 
 iterate over this uncompressed warc: works
-python ./warcio-iterator.py testing.warc
-  WARC-Type: warcinfo
-  WARC-Type: request
-    WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-  WARC-Type: response
-    WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-  WARC-Type: metadata
-    WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc"
+ WARC-Type: warcinfo
+ WARC-Type: request
+ WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+ WARC-Type: response
+ WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+ WARC-Type: metadata
+ WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
 
 compress it the wrong way
 gzip testing.warc
 
+-- HERE IT DOES NOT FAIL --
 iterating over this compressed warc fails
-python ./warcio-iterator.py testing.warc.gz || /usr/bin/true
-  WARC-Type: warcinfo
-Traceback (most recent call last):
-  File "/home/ccgreg/github/whirlwind-python/./warcio-iterator.py", line 9, in <module>
-    for record in ArchiveIterator(stream):
-  File "/home/ccgreg/venv/whirlwind/lib/python3.10/site-packages/warcio/archiveiterator.py", line 112, in _iterate_records
-    self._raise_invalid_gzip_err()
-  File "/home/ccgreg/venv/whirlwind/lib/python3.10/site-packages/warcio/archiveiterator.py", line 153, in _raise_invalid_gzip_err
-    raise ArchiveLoadFailed(msg)
-warcio.exceptions.ArchiveLoadFailed:
-    ERROR: non-chunked gzip file detected, gzip block continues
-    beyond single record.
-
-    This file is probably not a multi-member gzip but a single gzip file.
-
-    To allow seek, a gzipped WARC must have each record compressed into
-    a single gzip member and concatenated together.
-
-    This file is likely still valid and can be fixed by running:
-
-    warcio recompress <path/to/file> <path/to/new_file>
-
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz" || /usr/bin/true
+ WARC-Type: warcinfo
+ WARC-Type: request
+ WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+ WARC-Type: response
+ WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+ WARC-Type: metadata
+ WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
 
 now let's do it the right way
-gunzip testing.warc.gz
-warcio recompress testing.warc testing.warc.gz
-4 records read and recompressed to file: testing.warc.gz
-No Errors Found!
+gzip -d testing.warc.gz
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="testing.warc testing.warc.gz"
 
 and now iterating works
-python ./warcio-iterator.py testing.warc.gz
-  WARC-Type: warcinfo
-  WARC-Type: request
-    WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-  WARC-Type: response
-    WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-  WARC-Type: metadata
-    WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz"
+ WARC-Type: warcinfo
+ WARC-Type: request
+ WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+ WARC-Type: response
+ WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+ WARC-Type: metadata
+ WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
 ```
 
 </details>
