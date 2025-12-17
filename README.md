@@ -27,8 +27,6 @@ and [duckdb](https://duckdb.org/).
 
 We use a [Makefile](https://makefiletutorial.com) to provide many of the commands needed to run this tutorial. To see what commands are being run, open the `Makefile` and find the relevant target: e.g. `make install` runs `mvn clean install`.
 
-~~Alternatively, a [notebook version](https://github.com/commoncrawl/whirlwind-python-notebook) of this tutorial is also available.~~
-
 Let's get started!
 
 ## Task 0: Set-up
@@ -92,11 +90,11 @@ Now that we've looked at the uncompressed versions of these files to understand 
 
 ## Task 2: Iterate over WARC, WET, and WAT files
 
-The [warcio](https://github.com/webrecorder/warcio) Python library lets us read and write WARC files programmatically.
+The [JWar](https://github.com/iipc/jwarc) Java library lets us read and write WARC files programmatically.
 ```mermaid
 flowchart LR
-    user["userprocess (r/w)"]--warcio (w) -->warc
-    warc --warcio (r)--> user 
+    user["userprocess (r/w)"]--JWar (w) -->warc
+    warc --JWar (r)--> user 
     warc@{shape: cyl}
 ```
 Let's use it to iterate over our WARC, WET, and WAT files and print out the record types we looked at before. First, look at the code in `org.commoncrawl.whirlwind.ReadWARC`:
@@ -110,13 +108,12 @@ package org.commoncrawl.whirlwind;
 import org.netpreserve.jwarc.MessageHeaders;
 import org.netpreserve.jwarc.WarcReader;
 
-import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
 
 public class ReadWARC {
 
@@ -133,30 +130,29 @@ public class ReadWARC {
         }
 
         final List<String> RESPONSE_TYPES = Arrays.asList("request", "response", "conversion", "metadata");
-        try (
-                GZIPInputStream gzInputStream = new GZIPInputStream(Files.newInputStream(requested));
-                DataInputStream inStream = new DataInputStream(gzInputStream)
-        ) {
-            WarcReader reader = new WarcReader(inStream);
 
-            reader.records()
-                    .forEach(record -> {
-                        System.out.println(" WARC-Type: " + record.type());
-                        if (RESPONSE_TYPES.contains(record.type())) {
-                            MessageHeaders headers = record.headers();
-                            for (String header : headers.all("WARC-Target-URI")) {
-                                System.out.println(" WARC-Target-URI " + header);
-                            }
-                        }
-                    });
+        try (
+                InputStream in = Files.newInputStream(requested);
+                WarcReader reader = new WarcReader(in)
+        ) {
+            reader.records().forEach(record -> {
+                System.out.println(" WARC-Type: " + record.type());
+                if (RESPONSE_TYPES.contains(record.type())) {
+                    MessageHeaders headers = record.headers();
+                    for (String header : headers.all("WARC-Target-URI")) {
+                        System.out.println(" WARC-Target-URI " + header);
+                    }
+                }
+            });
         }
     }
 }
 
+
 ```
 </details>
 
-The `WarcReader` reads the WARC content using Streams in a single pass and allows us to access the attributes of each record (e.g. the record type through `record.rec_type`).
+The `org.commoncrawl.whirlwind.ReadWARC` reads the WARC content using JDK Streams in a single pass and allows us to access the attributes of each record (e.g. the record type through `record.type()`).
 
 Now run: 
 

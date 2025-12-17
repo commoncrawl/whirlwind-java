@@ -3,7 +3,6 @@
 package org.commoncrawl.whirlwind;
 
 import org.netpreserve.jwarc.MessageHeaders;
-import org.netpreserve.jwarc.WarcCompression;
 import org.netpreserve.jwarc.WarcReader;
 
 import java.io.IOException;
