@@ -1,3 +1,6 @@
+build:
+	mvn clean package
+
 iterate:
 	@echo iterating over all of the local warcs:
 	@echo
