@@ -1,7 +1,7 @@
 build:
 	mvn clean package
 
-iterate:
+iterate: build
 	@echo iterating over all of the local warcs:
 	@echo
 	@echo warc:
@@ -65,7 +65,7 @@ iterate:
 # 	@echo "warning! this might take 1-10 minutes"
 # 	python duck.py cloudfront
 #
-wreck_the_warc:
+wreck_the_warc: build
 	@echo
 	@echo we will break and then fix this warc
 	cp data/whirlwind.warc.gz data/testing.warc.gz
