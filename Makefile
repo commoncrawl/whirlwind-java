@@ -5,13 +5,13 @@ iterate:
 	@echo iterating over all of the local warcs:
 	@echo
 	@echo warc:
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="whirlwind.warc.gz"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.gz"
 	@echo
 	@echo wet:
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="whirlwind.warc.wet.gz"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.wet.gz"
 	@echo
 	@echo wat:
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="whirlwind.warc.wat.gz"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.wat.gz"
 	@echo
 
 # cdxj:
@@ -68,23 +68,23 @@ iterate:
 wreck_the_warc:
 	@echo
 	@echo we will break and then fix this warc
-	cp whirlwind.warc.gz testing.warc.gz
-	rm -f testing.warc
-	gzip -d testing.warc.gz  # windows gunzip no work-a
+	cp data/whirlwind.warc.gz data/testing.warc.gz
+	rm -f data/testing.warc
+	gzip -d data/testing.warc.gz  # windows gunzip no work-a
 	@echo
 	@echo iterate over this uncompressed warc: works
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc"
 	@echo
 	@echo compress it the wrong way
-	gzip testing.warc
+	gzip data/testing.warc
 	@echo
 	@echo iterating over this compressed warc fails
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz" || /usr/bin/true
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz" || /usr/bin/true
 	@echo
 	@echo "now let's do it the right way"
-	gzip -d testing.warc.gz
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="testing.warc testing.warc.gz"
+	gzip -d data/testing.warc.gz
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="data/testing.warc data/testing.warc.gz"
 	@echo
 	@echo and now iterating works
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz"
 	@echo
