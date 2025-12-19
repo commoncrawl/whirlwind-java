@@ -28,15 +28,15 @@ Temporary Items
 # Borrowed from whirlwind-python
 *.cdxj
 construction/*.gz
-CC-MAIN*files
-TEST*.gz
+**/CC-MAIN*files
+**/TEST*.gz
 extraction.*
 testing.*
-whirlwind.parquet
-collinfo.json
+**/whirlwind.parquet
+**/collinfo.json
+**/*.jar
 .venv/
 .vscode/
 .idea/
-
-.idea
-target
+target/
+build/
