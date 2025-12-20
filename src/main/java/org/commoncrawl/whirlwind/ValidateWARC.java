@@ -47,6 +47,8 @@ public class ValidateWARC {
                 // Read the entire stream to trigger member processing
                 // We might not need to read the whole stream, just enough to get an idea
             }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("The file is either not a gzip file or is corrupted.", e);
         }
 
         return memberCount.get();
