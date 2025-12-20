@@ -42,6 +42,18 @@ public class ReadWARC {
         }
 
         final List<String> RESPONSE_TYPES = Arrays.asList("request", "response", "conversion", "metadata");
+        try {
+            ValidateWARC.validateRandomAccessWarcOrFail(requested);
+        } catch (IOException e) {
+            System.out.println("This file is probably not a multi-member gzip but a single gzip file." +
+                    "\n" +
+                    "To allow seek, a gzipped WARC must have each record compressed into a single gzip member and concatenated together." +
+                    "\n" +
+                    "\n" +
+                    "This file is likely still valid and can be fixed by running:" +
+                    "\n" +
+                    "mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args=\"testing.warc testing.warc.gz\"");
+        }
 
         try (
                 InputStream in = Files.newInputStream(requested);
