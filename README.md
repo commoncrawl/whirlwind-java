@@ -291,12 +291,12 @@ and read through the output. You should get something like the output below:
 
 ```
 we will break and then fix this warc
-cp whirlwind.warc.gz testing.warc.gz
-rm -f testing.warc
-gzip -d testing.warc.gz  # windows gunzip no work-a
+cp data/whirlwind.warc.gz data/testing.warc.gz
+rm -f data/testing.warc
+gzip -d data/testing.warc.gz  # windows gunzip no work-a
 
 iterate over this uncompressed warc: works
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc"
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc"
  WARC-Type: warcinfo
  WARC-Type: request
  WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
@@ -306,25 +306,22 @@ mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args
  WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
 
 compress it the wrong way
-gzip testing.warc
+gzip data/testing.warc
 
--- HERE IT DOES NOT FAIL --
 iterating over this compressed warc fails
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz" || /usr/bin/true
- WARC-Type: warcinfo
- WARC-Type: request
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: response
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz" || /usr/bin/true
+This file is probably not a multi-member gzip but a single gzip file.
+To allow seek, a gzipped WARC must have each record compressed into a single gzip member and concatenated together.
 
-now let's do it the right way
-gzip -d testing.warc.gz
+This file is likely still valid and can be fixed by running:
 mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="testing.warc testing.warc.gz"
 
+now let's do it the right way
+gzip -d data/testing.warc.gz
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="data/testing.warc data/testing.warc.gz"
+
 and now iterating works
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz"
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz"
  WARC-Type: warcinfo
  WARC-Type: request
  WARC-Target-URI https://an.wikipedia.org/wiki/Escopete

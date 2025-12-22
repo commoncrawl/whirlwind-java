@@ -43,7 +43,7 @@ public class ReadWARC {
             throw new SecurityException("Invalid WARC path");
         }
 
-        if (requested.endsWith("gz") || requested.endsWith("gzip")) {
+        if (requested.toString().endsWith("gz") || requested.toString().endsWith("gzip")) {
             try {
                 ValidateWARC.validateRandomAccessWarcOrFail(requested);
             } catch (IOException e) {
