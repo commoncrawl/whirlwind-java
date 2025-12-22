@@ -24,4 +24,19 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-.idea
+
+# Borrowed from whirlwind-python
+*.cdxj
+construction/*.gz
+**/CC-MAIN*files
+**/TEST*.gz
+extraction.*
+testing.*
+**/whirlwind.parquet
+**/collinfo.json
+**/*.jar
+.venv/
+.vscode/
+.idea/
+target/
+build/
