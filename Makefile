@@ -1,4 +1,5 @@
 build:
+	mvn -q install:install-file -Dfile=libs/jwarc-0.32.1-SNAPSHOT.jar -DgroupId=org.netpreserve -DartifactId=jwarc -Dversion=0.32.1-SNAPSHOT -Dpackaging=jar
 	mvn clean package
 
 iterate: build
@@ -14,11 +15,12 @@ iterate: build
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.wat.gz"
 	@echo
 
-# cdxj:
-# 	@echo "creating *.cdxj index files from the local warcs"
-# 	cdxj-indexer whirlwind.warc.gz > whirlwind.warc.cdxj
+cdxj:
+	@echo "creating *.cdxj index files from the local warcs"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.gz" > whirlwind.warc.cdxj
 # 	cdxj-indexer --records conversion whirlwind.warc.wet.gz > whirlwind.warc.wet.cdxj
-# 	cdxj-indexer whirlwind.warc.wat.gz > whirlwind.warc.wat.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz" > whirlwind.warc.wet.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz" > whirlwind.warc.wat.cdxj
 
 # extract:
 # 	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"

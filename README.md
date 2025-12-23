@@ -208,8 +208,6 @@ We have two versions of the index: the CDX index and the columnar index. The CDX
 
 ### CDX(J) index
 
-**TBA**: Did not find a good java library that implements this feature, ideally can be implemented in jwarc
-
 The CDX index files are sorted plain-text files, with each line containing information about a single capture in the WARC. Technically, Common Crawl uses CDXJ index files since the information about each capture is formatted as JSON. We'll use CDX and CDXJ interchangeably in this tour for legacy reasons 💅
 
 We can create our own CDXJ index from the local WARCs by running:
@@ -223,9 +221,10 @@ This uses the [cdxj-indexer](https://github.com/webrecorder/cdxj-indexer) librar
 
 ```
 creating *.cdxj index files from the local warcs
-cdxj-indexer whirlwind.warc.gz > whirlwind.warc.cdxj
-cdxj-indexer --records conversion whirlwind.warc.wet.gz > whirlwind.warc.wet.cdxj
-cdxj-indexer whirlwind.warc.wat.gz > whirlwind.warc.wat.cdxj
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.gz"
+cdxj-indexer data/whirlwind.warc.gz > data/whirlwind.warc.cdxj
+cdxj-indexer --records conversion data/whirlwind.warc.wet.gz > data/whirlwind.warc.wet.cdxj
+cdxj-indexer data/whirlwind.warc.wat.gz > data/whirlwind.warc.wat.cdxj
 ```
 
 </details>
