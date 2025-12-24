@@ -194,80 +194,11 @@ The output has three sections, one each for the WARC, WET, and WAT. For each one
 
 ## Task 3: Index the WARC, WET, and WAT
 
-The example WARC files we've been using are tiny and easy to work with. The real WARC files are around a gigabyte in size and contain about 30,000 webpages each. What's more, we have around 24 million of these files! To read all of them, we could iterate, but what if we wanted random access so we could read just one particular record? We do that with an index. 
-```mermaid
-flowchart LR
-    warc --> indexer --> cdxj & columnar
-    warc@{shape: cyl}
-    cdxj@{ shape: stored-data}
-    columnar@{ shape: stored-data}
-```
-
-
-We have two versions of the index: the CDX index and the columnar index. The CDX index is useful for looking up single pages, whereas the columnar index is better suited to analytical and bulk queries. We'll look at both in this tour, starting with the CDX index.
-
-### CDX(J) index
-
-**TBA**: Did not find a good java library that implements this feature, ideally can be implemented in jwarc
-
-The CDX index files are sorted plain-text files, with each line containing information about a single capture in the WARC. Technically, Common Crawl uses CDXJ index files since the information about each capture is formatted as JSON. We'll use CDX and CDXJ interchangeably in this tour for legacy reasons 💅
-
-We can create our own CDXJ index from the local WARCs by running:
-
-```make cdxj```
-
-This uses the [cdxj-indexer](https://github.com/webrecorder/cdxj-indexer) library to generate CDXJ index files for our WARC files by running the code below: 
-
-<details>
-  <summary>Click to view code</summary>
-
-```
-creating *.cdxj index files from the local warcs
-cdxj-indexer whirlwind.warc.gz > whirlwind.warc.cdxj
-cdxj-indexer --records conversion whirlwind.warc.wet.gz > whirlwind.warc.wet.cdxj
-cdxj-indexer whirlwind.warc.wat.gz > whirlwind.warc.wat.cdxj
-```
-
-</details>
-
-Now look at the `.cdxj` files with `cat whirlwind*.cdxj`. You'll see that each file has one entry in the index. The WARC only has the response record indexed, since by default cdxj-indexer guesses that you won't ever want to random-access the request or metadata. WET and WAT have the conversion and metadata records indexed (Common Crawl doesn't publish a WET or WAT index, just WARC).
-
-For each of these records, there's one text line in the index - yes, it's a flat file! It starts with a string like `org,wikipedia,an)/wiki/escopete 20240518015810`, followed by a JSON blob. The starting string is the primary key of the index. The first thing is a [SURT](http://crawler.archive.org/articles/user_manual/glossary.html#surt) (Sort-friendly URI Reordering Transform). The big integer is a date, in ISO-8601 format with the delimiters removed.
-
-What is the purpose of this funky format? It's done this way because these flat files (300 gigabytes total per crawl) can be sorted on the primary key using any out-of-core sort utility e.g. the standard Linux `sort`, or one of the Hadoop-based out-of-core sort functions.
-
-The JSON blob has enough information to cleanly isolate the raw data of a single record: it defines which WARC file the record is in, and the byte offset and length of the record within this file. We'll use that in the next section.
+TBA
 
 ## Task 4: Use the CDXJ index to extract a subset of raw content from the local WARC, WET, and WAT 
 
-Normally, compressed files aren't random access. However, the WARC files use a trick to make this possible, which is that every record needs to be separately compressed. The `gzip` compression utility supports this, but it's rarely used.
-
-To extract one record from a warc file, all you need to know is the filename and the offset into the file. If you're reading over the web, then it really helps to know the exact length of the record.
-
-Run:
-
-```make extract```
-
-to run a set of extractions from your local
-`whirlwind.*.gz` files with `warcio` using the code below:
-
-<details>
-  <summary>Click to view code</summary>
-
-```
-creating extraction.* from local warcs, the offset numbers are from the cdxj index
-warcio extract --payload whirlwind.warc.gz 1023 > extraction.html
-warcio extract --payload whirlwind.warc.wet.gz 466 > extraction.txt
-warcio extract --payload whirlwind.warc.wat.gz 443 > extraction.json
-hint: python -m json.tool extraction.json
-```
-
-</details>
-
-The offset numbers in the Makefile are the same
-ones as in the index. Look at the three output files: `extraction.html`, `extraction.txt`, and `extraction.json` (pretty-print the json with `python -m json.tool extraction.json`). 
-
-Notice that we extracted HTML from the WARC, text from WET, and JSON from the WAT (as shown in the different file extensions). This is because the payload in each file type is formatted differently!
+TBA
 
 ## Task 5: Wreck the WARC by compressing it wrong
 
@@ -340,63 +271,7 @@ Make sure you compress WARCs the right way!
 
 ## Task 6: Use cdx_toolkit to query the full CDX index and download those captures from AWS S3
 
-Some of our users only want to download a small subset of the crawl. They want to run queries against an index, either the CDX index we just talked about, or in the columnar index, which we'll talk about later.
-
-The [cdx_toolkit](https://github.com/cocrawler/cdx_toolkit) is a set of tools for working with CDX indices of web crawls and archives. It knows how to query the CDX index across all of our crawls and also can create WARCs of just the records you want. We will fetch the same record from Wikipedia that we've been using for the whirlwind tour.
-
-Run
-
-```make cdx_toolkit```
-
-The output looks like this:
-
-<details>
-  <summary>Click to view output</summary>
-
-```
-demonstrate that we have this entry in the index
-cdxt --crawl CC-MAIN-2024-22 --from 20240518015810 --to 20240518015810 iter an.wikipedia.org/wiki/Escopete
-status 200, timestamp 20240518015810, url https://an.wikipedia.org/wiki/Escopete
-
-cleanup previous work
-rm -f TEST-000000.extracted.warc.gz
-retrieve the content from the commoncrawl s3 bucket
-cdxt --crawl CC-MAIN-2024-22 --from 20240518015810 --to 20240518015810 warc an.wikipedia.org/wiki/Escopete
-
-index this new warc
-cdxj-indexer TEST-000000.extracted.warc.gz  > TEST-000000.extracted.warc.cdxj
-cat TEST-000000.extracted.warc.cdxj
-org,wikipedia,an)/wiki/escopete 20240518015810 {"url": "https://an.wikipedia.org/wiki/Escopete", "mime": "text/html", "status": "200", "digest": "sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU", "length": "17455", "offset": "406", "filename": "TEST-000000.extracted.warc.gz"}
-
-iterate this new warc
-python ./warcio-iterator.py TEST-000000.extracted.warc.gz
-  WARC-Type: warcinfo
-  WARC-Type: response
-    WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-```
-
-</details>
-
-There's a lot going on here so let's unpack it a little.
-
-#### Check that the crawl has a record for the page we are interested in
-
-We check for capture results using the `cdxt` command `iter`, specifying the exact URL `an.wikipedia.org/wiki/Escopete` and the timestamp range `--from 20240518015810 --to 20240518015810`. The result of this tells us that the crawl successfuly fetched this page at timestamp `20240518015810`. 
-* Captures are named by the surtkey and the time.
-* Instead of `--crawl CC-MAIN-2024-22`, you could pass `--cc` to search across all crawls.
-* You can pass `--limit <N>` to limit the number of results returned - in this case because we have restricted the timestamp range to a single value, we only expect one result.
-* URLs may be specified with wildcards to return even more results: `"an.wikipedia.org/wiki/Escop*"` matches `an.wikipedia.org/wiki/Escopulión` and `an.wikipedia.org/wiki/Escopete`.
-
-#### Retrieve the fetched content as WARC
-
-Next, we use the `cdxt` command `warc` to retrieve the content and save it locally as a new WARC file, again specifying the exact URL, crawl identifier, and timestamp range. This creates the WARC file `TEST-000000.extracted.warc.gz` which contains a `warcinfo` record explaining what the WARC is, followed by the `response` record we requested. 
-* If you dig into cdx_toolkit's code, you'll find that it is using the offset and length of the WARC record (as returned by the CDX index query) to make a HTTP byte range request to S3 that isolates and returns just the single record we want from the full file. It only downloads the response WARC record because our CDX index only has the response records indexed.
-* By default `cdxt` avoids overwriting existing files by automatically incrementing the counter in the filename. If you run this again without deleting `TEST-000000.extracted.warc.gz`, the data will be written again to a new file `TEST-000001.extracted.warc.gz`.
-* Limit, timestamp, and crawl index args, as well as URL wildcards, work as for `iter`.
-
-### Indexing the WARC and viewing its contents
-
-Finally, we run `cdxj-indexer` on this new WARC to make a CDXJ index of it as in Task 3, and then iterate over the WARC using `warcio-iterator.py` as in Task 2.
+TBA 
 
 ## Task 7: Find the right part of the columnar index 
 
@@ -434,125 +309,11 @@ The date of our test record is 20240518015810, which is
 
 ## Task 8: Query using the columnar index + DuckDB from outside AWS
 
-A single crawl columnar index is around 300 gigabytes. If you don't have a lot of disk space, but you do have a lot of time, you can directly access the index stored on AWS S3. We're going to do just that, and then use [DuckDB](https://duckdb.org) to make an SQL query against the index to find our webpage. We'll be running the following query:
-
-```sql
-    SELECT
-      *
-    FROM ccindex
-    WHERE subset = 'warc'
-      AND crawl = 'CC-MAIN-2024-22'
-      AND url_host_tld = 'org' -- help the query optimizer
-      AND url_host_registered_domain = 'wikipedia.org' -- ditto
-      AND url = 'https://an.wikipedia.org/wiki/Escopete'
-    ;
-```
-
-Run
-
-```make duck_cloudfront```
-
-On a machine with a 1 gigabit network connection and many cores, this should take about one minute total, and uses 8 cores. The output should look like:
-
-<details>
-  <summary>Click to view output</summary>
-
-```
-warning! this might take 1-10 minutes
-python duck.py cloudfront
-total records for crawl: CC-MAIN-2024-22
-┌──────────────┐
-│ count_star() │
-│    int64     │
-├──────────────┤
-│   2709877975 │
-└──────────────┘
-
-our one row
-┌──────────────────────┬──────────────────────┬──────────────────┬───┬──────────────────┬─────────────────┬─────────┐
-│     url_surtkey      │         url          │  url_host_name   │ … │   warc_segment   │      crawl      │ subset  │
-│       varchar        │       varchar        │     varchar      │   │     varchar      │     varchar     │ varchar │
-├──────────────────────┼──────────────────────┼──────────────────┼───┼──────────────────┼─────────────────┼─────────┤
-│ org,wikipedia,an)/…  │ https://an.wikiped…  │ an.wikipedia.org │ … │ 1715971057216.39 │ CC-MAIN-2024-22 │ warc    │
-├──────────────────────┴──────────────────────┴──────────────────┴───┴──────────────────┴─────────────────┴─────────┤
-│ 1 rows                                                                                       32 columns (6 shown) │
-└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-writing our one row to a local parquet file, whirlwind.parquet
-total records for local whirlwind.parquet should be 1
-┌──────────────┐
-│ count_star() │
-│    int64     │
-├──────────────┤
-│            1 │
-└──────────────┘
-
-our one row, locally
-┌──────────────────────┬──────────────────────┬──────────────────┬───┬──────────────────┬─────────────────┬─────────┐
-│     url_surtkey      │         url          │  url_host_name   │ … │   warc_segment   │      crawl      │ subset  │
-│       varchar        │       varchar        │     varchar      │   │     varchar      │     varchar     │ varchar │
-├──────────────────────┼──────────────────────┼──────────────────┼───┼──────────────────┼─────────────────┼─────────┤
-│ org,wikipedia,an)/…  │ https://an.wikiped…  │ an.wikipedia.org │ … │ 1715971057216.39 │ CC-MAIN-2024-22 │ warc    │
-├──────────────────────┴──────────────────────┴──────────────────┴───┴──────────────────┴─────────────────┴─────────┤
-│ 1 rows                                                                                       32 columns (6 shown) │
-└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-complete row:
-  url_surtkey org,wikipedia,an)/wiki/escopete
-  url https://an.wikipedia.org/wiki/Escopete
-  url_host_name an.wikipedia.org
-  url_host_tld org
-  url_host_2nd_last_part wikipedia
-  url_host_3rd_last_part an
-  url_host_4th_last_part None
-  url_host_5th_last_part None
-  url_host_registry_suffix org
-  url_host_registered_domain wikipedia.org
-  url_host_private_suffix org
-  url_host_private_domain wikipedia.org
-  url_host_name_reversed org.wikipedia.an
-  url_protocol https
-  url_port nan
-  url_path /wiki/Escopete
-  url_query None
-  fetch_time 2024-05-18 01:58:10+00:00
-  fetch_status 200
-  fetch_redirect None
-  content_digest RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU
-  content_mime_type text/html
-  content_mime_detected text/html
-  content_charset UTF-8
-  content_languages spa
-  content_truncated None
-  warc_filename crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz
-  warc_record_offset 80610731
-  warc_record_length 17423
-  warc_segment 1715971057216.39
-  crawl CC-MAIN-2024-22
-  subset warc
-
-equivalent to cdxj:
-org,wikipedia,an)/wiki/escopete 20240518015810 {"url": "https://an.wikipedia.org/wiki/Escopete", "mime": "text/html", "status": "200", "digest": "sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU", "length": "17423", "offset": "80610731", "filename": "crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz"}
-
-```
-</details>
-
-The above command runs code in `duck.py`, which accesses the relevant part of the index for our crawl (CC-MAIN-2024-22) and then counts the number of records in that crawl (2709877975!). The code runs the SQL query we saw before which should match the single response record we want. 
-
-The program then writes that one record into a local Parquet file, does a second query that returns that one record, and shows the full contents of the record. We can see that the complete row contains many columns containing different information associated with our record. Finally, it converts the row to the CDXJ format we saw before. 
+TBA
 
 ### Bonus: download a full crawl index and query with DuckDB
 
-If you want to run many of these queries, and you have a lot of disk space, you'll want to download the 300 gigabyte index and query it repeatedly. Run
-
-```make duck_local_files```
-
-If the files aren't already downloaded, this command will give you
-download instructions.
-
-(**Bonus bonus:** If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```.)
-
-All of these scripts run the same SQL query and should return the same record (written as a parquet file).
+TBA
 
 ## Bonus 2: combine some steps
 
