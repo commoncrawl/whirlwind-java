@@ -90,107 +90,334 @@ Now that we've looked at the uncompressed versions of these files to understand 
 
 ## Task 2: Iterate over WARC, WET, and WAT files
 
-The [JWar](https://github.com/iipc/jwarc) Java library lets us read and write WARC files programmatically.
+The [JWarc](https://github.com/iipc/jwarc) Java library lets us read and write WARC files both programmatically and via a CLI. 
 ```mermaid
 flowchart LR
-    user["userprocess (r/w)"]--JWar (w) -->warc
+    user["userprocess (r/w)"]-- JWar (w) --> warc
     warc --JWar (r)--> user 
     warc@{shape: cyl}
 ```
-Let's use it to iterate over our WARC, WET, and WAT files and print out the record types we looked at before. First, look at the code in `org.commoncrawl.whirlwind.ReadWARC`:
+
+You should download the [JWarc](https://github.com/iipc/jwarc)'s JAR using `make get_jwarc` which should download the JAR in the root directory. 
+If you download it yourself, we recommend you to rename it to remove the version from the jar filename, so you can copy-paste the commands directly.
+You can now explore the CLI commands available by running:
+
+```shell
+java -jar jwarc.jar --help
+```
 
 <details>
-  <summary>Click to view code</summary>
+  <summary>Click to view the result</summary>
 
-```java
-package org.commoncrawl.whirlwind;
+```
+usage: jwarc <command> [args]...
 
-import org.netpreserve.jwarc.MessageHeaders;
-import org.netpreserve.jwarc.WarcReader;
+Commands:
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
+  cdx         List records in CDX format
+  cdxj        List records in CDXJ format
+  dedupe      Deduplicate records by looking up a CDX server
+  extract     Extract record by offset
+  fetch       Download a URL recording the request and response
+  filter      Copy records that match a given filter expression
+  ls          List records in WARC file(s)
+  record      Fetch a page and subresources using headless Chrome
+  recorder    Run a recording proxy
+  saveback    Saves wayback-style replayed pages as WARC records
+  screenshot  Take a screenshot of each page in the given WARCs
+  serve       Serve WARC files with a basic replay server/proxy
+  stats       Print statistics about WARC and CDX files
+  validate    Validate WARC or ARC files
+  version     Print version information
+```
 
-public class ReadWARC {
+</details>
 
-    public static void main(String[] args) throws IOException {
-
-        if (args.length != 1) {
-            System.err.println("Usage: java ReadWARC <input-warc-file>");
-            System.exit(1);
-        }
-
-        Path requested = Path.of(args[0]).toAbsolutePath().normalize();
-        if (!Files.isRegularFile(requested)) {
-            throw new SecurityException("Invalid WARC path");
-        }
-
-        final List<String> RESPONSE_TYPES = Arrays.asList("request", "response", "conversion", "metadata");
-
-        try (
-                InputStream in = Files.newInputStream(requested);
-                WarcReader reader = new WarcReader(in)
-        ) {
-            reader.records().forEach(record -> {
-                System.out.println(" WARC-Type: " + record.type());
-                if (RESPONSE_TYPES.contains(record.type())) {
-                    MessageHeaders headers = record.headers();
-                    for (String header : headers.all("WARC-Target-URI")) {
-                        System.out.println(" WARC-Target-URI " + header);
-                    }
-                }
-            });
-        }
-    }
-}
+Let's iterate over our WARC, WET, and WAT files and print out the record types we looked at before. We will see the use of `ls` for listing records and offsets, and `extract` for pulling out records information (payload, headers) using the offsets as reference. ~~First, look at the code in `org.commoncrawl.whirlwind.ReadWARC`~~:
 
 
+```shell
+java -jar jwarc.jar ls data/whirlwind.warc.gz
+         0 warcinfo   -    -
+       516 request    GET  https://an.wikipedia.org/wiki/Escopete
+      1023 response   200  https://an.wikipedia.org/wiki/Escopete
+     18374 metadata   -    https://an.wikipedia.org/wiki/Escopete
+```
+
+The `java -jar jwarc.jar ls` command lists the records in a WARC file, showing the offset, type, HTTP status code (if applicable), and target URI for each record.
+
+You can then extract information about the response record:
+```shell
+java -jar jwarc.jar extract data/whirlwind.warc.gz 1023
+```
+
+This command will return the full record: headers and payload. Is possible to select either by passing the `--payload` or `--headers` parameters before the filename. 
+
+```shell
+java -jar jwarc.jar extract --headers data/whirlwind.warc.gz 1023
+```
+<details>
+  <summary>Click to view the result</summary>
+
+```
+WARC/1.0
+Content-Length: 74581
+Content-Type: application/http; msgtype=response
+WARC-Block-Digest: sha1:35FTUGFVNWRVTZQGCWIX2MQA3LMYC7X7
+WARC-Concurrent-To: <urn:uuid:292f457d-203c-42f2-a1b5-69a4dabefd4f>
+WARC-Date: 2024-05-18T01:58:10Z
+WARC-Identified-Payload-Type: text/html
+WARC-IP-Address: 208.80.154.224
+WARC-Payload-Digest: sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU
+WARC-Record-ID: <urn:uuid:2aabeff2-67f5-4608-8466-e87c6296e2b6>
+WARC-Target-URI: https://an.wikipedia.org/wiki/Escopete
+WARC-Type: response
+WARC-Warcinfo-ID: <urn:uuid:668d88fc-4208-41fc-b327-1aa6cb783331>
+
+HTTP/1.1 200 OK
+date: Sat, 18 May 2024 01:58:10 GMT
+server: mw-web.eqiad.canary-bb67b76b8-jtwdb
+x-content-type-options: nosniff
+content-language: an
+origin-trial: AonOP4SwCrqpb0nhZbg554z9iJimP3DxUDB8V4yu9fyyepauGKD0NXqTknWi4gnuDfMG6hNb7TDUDTsl0mDw9gIAAABmeyJvcmlnaW4iOiJodHRwczovL3dpa2lwZWRpYS5vcmc6NDQzIiwiZmVhdHVyZSI6IlRvcExldmVsVHBjZCIsImV4cGlyeSI6MTczNTM0Mzk5OSwiaXNTdWJkb21haW4iOnRydWV9
+accept-ch: 
+vary: Accept-Encoding,Cookie,Authorization
+last-modified: Sat, 04 May 2024 01:58:10 GMT
+content-type: text/html; charset=UTF-8
+X-Crawler-content-encoding: gzip
+age: 0
+x-cache: cp1106 miss, cp1106 miss
+x-cache-status: miss
+server-timing: cache;desc="miss", host;desc="cp1106"
+strict-transport-security: max-age=106384710; includeSubDomains; preload
+report-to: { "group": "wm_nel", "max_age": 604800, "endpoints": [{ "url": "https://intake-logging.wikimedia.org/v1/events?stream=w3c.reportingapi.network_error&schema_uri=/w3c/reportingapi/network_error/1.0.0" }] }
+nel: { "report_to": "wm_nel", "max_age": 604800, "failure_fraction": 0.05, "success_fraction": 0.0}
+set-cookie: WMF-Last-Access=18-May-2024;Path=/;HttpOnly;secure;Expires=Wed, 19 Jun 2024 00:00:00 GMT
+set-cookie: WMF-Last-Access-Global=18-May-2024;Path=/;Domain=.wikipedia.org;HttpOnly;secure;Expires=Wed, 19 Jun 2024 00:00:00 GMT
+set-cookie: WMF-DP=1a6;Path=/;HttpOnly;secure;Expires=Sat, 18 May 2024 00:00:00 GMT
+x-client-ip: 34.239.158.223
+cache-control: private, s-maxage=0, max-age=0, must-revalidate
+set-cookie: GeoIP=US:VA:Ashburn:39.05:-77.49:v4; Path=/; secure; Domain=.wikipedia.org
+set-cookie: NetworkProbeLimit=0.001;Path=/;Secure;Max-Age=3600
+accept-ranges: bytes
+X-Crawler-transfer-encoding: chunked
+Content-Length: 72848
 ```
 </details>
 
-The `org.commoncrawl.whirlwind.ReadWARC` reads the WARC content using JDK Streams in a single pass and allows us to access the attributes of each record (e.g. the record type through `record.type()`).
+Now, let's have a look at the WET and WAT compressed files.  
+You can obtain similar information by running `ls` on those files: 
+```shell
+java -jar jwarc.jar ls data/whirlwind.warc.wet.gz 
+         0 warcinfo   -    -
+       466 conversion -    https://an.wikipedia.org/wiki/Escopete
+```
 
-Now run: 
+and 
 
-`make iterate` 
+```shell
+java -jar jwarc.jar ls data/whirlwind.warc.wat.gz 
+         0 warcinfo   -    -
+       443 metadata   -    https://an.wikipedia.org/wiki/Escopete
+```
 
-This will run `org.commoncrawl.whirlwind.ReadWARC` on `whirlwind.warc.gz`, `whirlwind.warc.wet.gz`, and `whirlwind.warc.wat.gz` in turn. You should see output like the following:
+Following the same principle, you can obtain the converted text payload by running: 
+
+```shell
+java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz
+```
 
 <details>
-  <summary>Click to view output</summary>
+  <summary>Click to view the result</summary>
 
 ```
-iterating over all of the local warcs:
-
-warc:
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="whirlwind.warc.gz"
- WARC-Type: warcinfo
- WARC-Type: request
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: response
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-
-wet:
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="whirlwind.warc.wet.gz"
- WARC-Type: warcinfo
- WARC-Type: conversion
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-
-wat:
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="whirlwind.warc.wat.gz"
- WARC-Type: warcinfo
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+Escopete - Biquipedia, a enciclopedia libre
+Ir al contenido
+Menú principal
+Menú principal
+mover a la barra lateral
+ocultar
+Navego
+Portalada
+A tabierna
+Actualidat
+Zaguers cambeos
+Una pachina a l'azar
+Aduya
+Donativos
+Mirar
+Mirar-lo
+Creyar cuenta
+Dentrar-ie
+Ferramientas personals
+Creyar cuenta
+Dentrar-ie
+Páginas para editores desconectados más información
+Contribucions
+Pachina de descusión d'ista IP
+Contenidos
+mover a la barra lateral
+ocultar
+Inicio
+1Cheografía
+2Historia
+3Administración
+Alternar subsección Administración
+3.1Alcaldes
+4Molimentos
+5Fiestas
+6Referencias
+7Vinclos externos
+Cambiar a la tabla de contenidos
+Escopete
+32 idiomas
+Asturianu
+Brezhoneg
+Català
+Нохчийн
+Cebuano
+Deutsch
+English
+Esperanto
+Español
+Euskara
+Français
+Magyar
+Interlingua
+Interlingue
+Italiano
+Қазақша
+Ladin
+Lombard
+Bahasa Melayu
+Nederlands
+Occitan
+Polski
+Português
+Русский
+Svenska
+Татарча / tatarça
+Українська
+Vèneto
+Tiếng Việt
+Winaray
+中文
+閩南語 / Bân-lâm-gú
+Modificar os enlaces
+Pachina
+Discusión
+aragonés
+Leyer
+Editar
+Modificar codigo
+Amostrar l'historial
+Ferramientas
+Herramientas
+mover a la barra lateral
+ocultar
+Acciones
+Leyer
+Editar
+Modificar codigo
+Amostrar l'historial
+General
+Pachinas que enlazan con ista
+Cambios relacionatos
+Cargar fichero
+Pachinas especials
+Vinclo permanent
+Información d'a pachina
+Citar ista pachina
+Obtener URL acortado
+Descargar código QR
+Elemento de Wikidata
+Imprentar/exportar
+Creyar un libro
+Descargar como PDF
+Versión ta imprentar
+En otros proyectos
+Wikimedia Commons
+De Biquipedia
+Iste articlo ye en proceso de cambio enta la ortografía oficial de Biquipedia (la Ortografía de l'aragonés de l'Academia Aragonesa d'a Luenga). Puez aduyar a completar este proceso revisando l'articlo, fendo-ie los cambios ortograficos necesarios y sacando dimpués ista plantilla.
+Escopete
+Municipio de Castiella-La Mancha
+Entidat
+• Estau
+• Comunidat
+• Provincia
+• Comarca Municipio
+Espanya
+Castiella-La Mancha
+Guadalachara
+La Alcarria
+Superficie 19,01 km²
+Población
+• Total
+68 hab. (2013)
+Altaria
+• Meyana
+860 m.
+Distancia
+• 47 km
+enta Guadalachara
+Alcalde Hilario Lopez Ferrer
+Codigo postal 19119
+Chentilicio escopetero / escopetera
+(en castellano)
+Coordenadas
+40°24’59’’N 3° 0’23’’U
+Escopete
+Escopete en Castiella-La Mancha
+Escopete ye un municipio d'a provincia de Guadalachara, en a comunidat autonoma de Castiella-La Mancha, Espanya, comarca de La Alcarria y partiu chudicial de Guadalachara.
+A suya población ye de 84 habitants (2007), en una superficie de 19,01 km² y una densidat de población de 4,42 hab/km².
+Cheografía[editar | modificar o codigo]
+Ye situato a 860 metros d'altaria sobre o ran d'a mar, a una distancia de 47 km de Guadalachara, a capital d'a suya provincia, y d'o suyo termin municipal fa parti o lugar de Monteumbría.
+Historia[editar | modificar o codigo]
+Escopete ye citato en as Relaciones Topográficas de los pueblos de Espanya, feitas por Felipe II de Castiella en 1578.
+Administración[editar | modificar o codigo]
+Alcaldes[editar | modificar o codigo]
+Lista d'alcaldes
+Lechislatura
+Nombre
+Partiu politico
+1979–1983
+1983–1987
+1987–1991
+1991–1995
+1995–1999
+1999–2003
+2003–2007
+2007–2011 Hilario López Herrer Partido Socialista Obrero Español
+Molimentos[editar | modificar o codigo]
+Ilesia parroquial de l'Asunción, d'estilo romanico, d'o sieglo XIII.[1] Fue parcialment destruita en a Guerra Civil espanyola.
+Fiestas[editar | modificar o codigo]
+11 d'agosto.[1]
+Referencias[editar | modificar o codigo]
+↑ 1,0 1,1 Deputación Provincial de Guadalachara.
+Vinclos externos[editar | modificar o codigo]
+(es) Escopete en a pachina web d'a Deputación Provincial de Guadalachara.
+Obteniu de "https://an.wikipedia.org/w/index.php?title=Escopete&oldid=2049929"
+Categoría:
+Localidaz d'a provincia de Guadalachara
+Categorías amagadas:
+Biquiprochecto:Grafía/Articlos con grafía EFA
+Wikipedia:Articlos con datos por tresladar ta Wikidata
+Zaguera edición d'ista pachina o 17 ago 2023 a las 21:26.
+O texto ye disponible baixo a Licencia Creative Commons Atribución/Compartir-Igual; talment sigan d'aplicación clausulas adicionals. Mire-se os termins d'uso ta conoixer más detalles.
+Politica de privacidat
+Sobre Biquipedia
+Alvertencias chenerals
+Código de conducta
+Desembolicadors
+Estatisticas
+Declaración de cookies
+Versión ta mobils
+Activar o desactivar el límite de anchura del contenido
 ```
+
 </details>
 
-The output has three sections, one each for the WARC, WET, and WAT. For each one, it prints the record types we saw before, plus the `WARC-Target-URI` for those record types that have it.
+Feel free to experiment more by looking at other part of the records, or extracting different records. 
 
 ## Task 3: Index the WARC, WET, and WAT
 
