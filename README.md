@@ -90,13 +90,7 @@ Now that we've looked at the uncompressed versions of these files to understand 
 
 ## Task 2: Iterate over WARC, WET, and WAT files
 
-The [JWarc](https://github.com/iipc/jwarc) Java library lets us read and write WARC files both programmatically and via a CLI. 
-```mermaid
-flowchart LR
-    user["userprocess (r/w)"]-- JWar (w) --> warc
-    warc --JWar (r)--> user 
-    warc@{shape: cyl}
-```
+The [JWarc](https://github.com/iipc/jwarc) Java library lets us read and write WARC files both programmatically and via a CLI.
 
 You should download the [JWarc](https://github.com/iipc/jwarc)'s JAR using `make get_jwarc` which should download the JAR in the root directory. 
 If you download it yourself, we recommend you to rename it to remove the version from the jar filename, so you can copy-paste the commands directly.
@@ -134,7 +128,6 @@ Commands:
 </details>
 
 Let's iterate over our WARC, WET, and WAT files and print out the record types we looked at before. We will see the use of `ls` for listing records and offsets, and `extract` for pulling out records information (payload, headers) using the offsets as reference. ~~First, look at the code in `org.commoncrawl.whirlwind.ReadWARC`~~:
-
 
 ```shell
 java -jar jwarc.jar ls data/whirlwind.warc.gz
