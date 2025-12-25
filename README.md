@@ -202,72 +202,7 @@ TBA
 
 ## Task 5: Wreck the WARC by compressing it wrong
 
-As mentioned earlier, WARC/WET/WAT files look like they're gzipped, but they're actually gzipped in a particular way that allows random access. This means that you can't `gunzip` and then `gzip` a warc without wrecking random access. This example:
-
-* creates a copy of one of the warc files in the repo
-* uncompresses it
-* recompresses it the wrong way
-* runs `org.commoncrawl.whirlwind.ReadWARC` over it to show that it triggers an error (in fact in java it does not trigger an error... )
-* recompresses it the right way using `org.commoncrawl.whirlwind.RecompressWARC`
-* shows that this compressed file works
-
-Run
-
-```make wreck_the_warc```
-
-and read through the output. You should get something like the output below:
-
-<details>
-  <summary>Click to view output</summary>
-
-```
-we will break and then fix this warc
-cp whirlwind.warc.gz testing.warc.gz
-rm -f testing.warc
-gzip -d testing.warc.gz  # windows gunzip no work-a
-
-iterate over this uncompressed warc: works
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc"
- WARC-Type: warcinfo
- WARC-Type: request
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: response
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-
-compress it the wrong way
-gzip testing.warc
-
--- HERE IT DOES NOT FAIL --
-iterating over this compressed warc fails
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz" || /usr/bin/true
- WARC-Type: warcinfo
- WARC-Type: request
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: response
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-
-now let's do it the right way
-gzip -d testing.warc.gz
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="testing.warc testing.warc.gz"
-
-and now iterating works
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="testing.warc.gz"
- WARC-Type: warcinfo
- WARC-Type: request
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: response
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-```
-
-</details>
-
-Make sure you compress WARCs the right way!
+TBA
 
 ## Task 6: Use cdx_toolkit to query the full CDX index and download those captures from AWS S3
 
