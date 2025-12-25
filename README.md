@@ -231,7 +231,7 @@ gzip -d data/testing.warc.gz  # windows gunzip no work-a
 compress it the wrong way
 gzip data/testing.warc
 
-showing the records in the compressed warc - note the offsets of request and response are
+showing the records in the compressed warc - note the offsets of request and response are identical 
 java -jar jwarc-0.33.0.jar ls data/testing.warc.gz
          0 warcinfo   -    -
       3734 request    GET  https://an.wikipedia.org/wiki/Escopete
@@ -258,7 +258,7 @@ now let's do it the right way
 gzip -d data/testing.warc.gz
 mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="data/testing.warc data/testing.warc.gz"
 
-showing the records in the compressed warc - note the skewed offsets of request and response
+showing the records in the compressed warc
 java -jar jwarc-0.33.0.jar ls data/testing.warc.gz
          0 warcinfo   -    -
        518 request    GET  https://an.wikipedia.org/wiki/Escopete
