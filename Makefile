@@ -1,34 +1,19 @@
 build:
-	mvn -q install:install-file -Dfile=libs/jwarc-0.32.1-SNAPSHOT.jar -DgroupId=org.netpreserve -DartifactId=jwarc -Dversion=0.32.1-SNAPSHOT -Dpackaging=jar
 	mvn clean package
 
-iterate: build
-	@echo iterating over all of the local warcs:
-	@echo
-	@echo warc:
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.gz"
-	@echo
-	@echo wet:
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.wet.gz"
-	@echo
-	@echo wat:
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.wat.gz"
-	@echo
-
-cdxj:
+cdxj: build ensure_jwarc
 	@echo "creating *.cdxj index files from the local warcs"
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.gz" > whirlwind.warc.cdxj
-# 	cdxj-indexer --records conversion whirlwind.warc.wet.gz > whirlwind.warc.wet.cdxj
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz" > whirlwind.warc.wet.cdxj
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz" > whirlwind.warc.wat.cdxj
+	java -jar jwarc.jar cdxj data/whirlwind.warc.gz > whirlwind.warc.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > whirlwind.warc.wet.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > whirlwind.warc.wat.cdxj
 
-# extract:
-# 	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
-# 	warcio extract --payload whirlwind.warc.gz 1023 > extraction.html
-# 	warcio extract --payload whirlwind.warc.wet.gz 466 > extraction.txt
-# 	warcio extract --payload whirlwind.warc.wat.gz 443 > extraction.json
-# 	@echo "hint: python -m json.tool extraction.json"
-#
+extract:
+	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
+	java -jar jwarc.jar extract --payload data/whirlwind.warc.gz 1023 > extraction.html
+	java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz 466 > extraction.txt
+	java -jar jwarc.jar extract --payload data/whirlwind.warc.wat.gz 443 > extraction.json
+	@echo "hint: python -m json.tool extraction.json"
+
 # cdx_toolkit:
 # 	@echo demonstrate that we have this entry in the index
 # 	cdxt --crawl CC-MAIN-2024-22 --from 20240518015810 --to 20240518015810 iter an.wikipedia.org/wiki/Escopete
@@ -67,7 +52,20 @@ cdxj:
 # 	@echo "warning! this might take 1-10 minutes"
 # 	python duck.py cloudfront
 #
-wreck_the_warc: build
+ensure_jwarc:
+	@echo "Ensuring JWarc JAR is present"
+	@if [ ! -f jwarc.jar ] ; then \
+	  echo "jwarc.jar not found, downloading..." ; \
+	  curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar ; \
+	else \
+	  echo "jwarc.jar found." ; \
+	fi
+
+get_jwarc:
+	@echo "downloading JWarc JAR"
+	curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar
+
+wreck_the_warc: build ensure_jwarc
 	@echo
 	@echo we will break and then fix this warc
 	cp data/whirlwind.warc.gz data/testing.warc.gz

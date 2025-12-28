@@ -214,17 +214,16 @@ We can create our own CDXJ index from the local WARCs by running:
 
 ```make cdxj```
 
-This uses the [cdxj-indexer](https://github.com/webrecorder/cdxj-indexer) library to generate CDXJ index files for our WARC files by running the code below: 
+This uses the JWARC library and, partially, a home-cooked code that we wrote to support WET and WAT records, to generate CDXJ index files for our WARC files by running the code below: 
 
 <details>
   <summary>Click to view code</summary>
 
 ```
 creating *.cdxj index files from the local warcs
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.gz"
-cdxj-indexer data/whirlwind.warc.gz > data/whirlwind.warc.cdxj
-cdxj-indexer --records conversion data/whirlwind.warc.wet.gz > data/whirlwind.warc.wet.cdxj
-cdxj-indexer data/whirlwind.warc.wat.gz > data/whirlwind.warc.wat.cdxj
+java -jar jwarc.jar cdxj data/whirlwind.warc.gz > whirlwind.warc.cdxj
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > whirlwind.warc.wet.cdxj
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > whirlwind.warc.wat.cdxj
 ```
 
 </details>
@@ -248,16 +247,16 @@ Run:
 ```make extract```
 
 to run a set of extractions from your local
-`whirlwind.*.gz` files with `warcio` using the code below:
+`whirlwind.*.gz` files with `JWARC` using the commands below:
 
 <details>
   <summary>Click to view code</summary>
 
 ```
 creating extraction.* from local warcs, the offset numbers are from the cdxj index
-warcio extract --payload whirlwind.warc.gz 1023 > extraction.html
-warcio extract --payload whirlwind.warc.wet.gz 466 > extraction.txt
-warcio extract --payload whirlwind.warc.wat.gz 443 > extraction.json
+java -jar jwarc.jar extract --payload data/whirlwind.warc.gz 1023 > extraction.html
+java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz 466 > extraction.txt
+java -jar jwarc.jar extract --payload data/whirlwind.warc.wat.gz 443 > extraction.json
 hint: python -m json.tool extraction.json
 ```
 
