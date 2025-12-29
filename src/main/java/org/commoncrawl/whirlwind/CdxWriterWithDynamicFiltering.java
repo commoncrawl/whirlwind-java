@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public class CdxFilterWithDynamicFiltering extends CdxWriter {
+public class CdxWriterWithDynamicFiltering extends CdxWriter {
 	private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
 			.withZone(ZoneOffset.UTC);
 
@@ -40,7 +40,7 @@ public class CdxFilterWithDynamicFiltering extends CdxWriter {
 	private Consumer<String> warningHandler;
 	private Predicate<WarcRecord> recordFilter = null;
 
-	public CdxFilterWithDynamicFiltering(Writer writer) {
+	public CdxWriterWithDynamicFiltering(Writer writer) {
 		super(writer);
 		this.writer = writer;
 	}

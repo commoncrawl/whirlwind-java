@@ -81,7 +81,7 @@ public class CdxjIndexer {
 		}
 
 		try (InputStream in = Files.newInputStream(requested);
-				CdxFilterWithDynamicFiltering cdxjWriter = new CdxFilterWithDynamicFiltering(
+				CdxWriterWithDynamicFiltering cdxjWriter = new CdxWriterWithDynamicFiltering(
 						new OutputStreamWriter(System.out));
 				WarcReader reader = new WarcReader(in)) {
 			reader.setLenient(true);
