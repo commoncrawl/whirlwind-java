@@ -31,15 +31,15 @@ extract:
 # 	python ./warcio-iterator.py TEST-000000.extracted.warc.gz
 # 	@echo
 #
-# download_collinfo:
-# 	@echo "downloading collinfo.json so we can find out the crawl name"
-# 	curl -O https://index.commoncrawl.org/collinfo.json
-#
-# CC-MAIN-2024-22.warc.paths.gz:
-# 	@echo "downloading the list from s3, requires s3 auth even though it is free"
-# 	@echo "note that this file should be in the repo"
-# 	 aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > CC-MAIN-2024-22.warc.paths.gz
-#
+download_collinfo:
+	@echo "downloading collinfo.json so we can find out the crawl name"
+	curl -O https://index.commoncrawl.org/collinfo.json
+
+CC-MAIN-2024-22.warc.paths.gz:
+	@echo "downloading the list from s3, requires s3 auth even though it is free"
+	@echo "note that this file should be in the repo"
+	 aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > CC-MAIN-2024-22.warc.paths.gz
+
 # duck_local_files:
 # 	@echo "warning! 300 gigabyte download"
 # 	python duck.py local_files
