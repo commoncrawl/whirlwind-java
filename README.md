@@ -453,72 +453,54 @@ On a machine with a 1 gigabit network connection and many cores, this should tak
   <summary>Click to view output</summary>
 
 ```
-warning! this might take 1-10 minutes
-python duck.py cloudfront
-total records for crawl: CC-MAIN-2024-22
-┌──────────────┐
-│ count_star() │
-│    int64     │
-├──────────────┤
-│   2709877975 │
-└──────────────┘
+Using algorithm: cloudfront
+Total records for crawl: CC-MAIN-2024-22
+100% ▕████████████████████████████████████████████████████████████▏ 
+2709877975
 
-our one row
-┌──────────────────────┬──────────────────────┬──────────────────┬───┬──────────────────┬─────────────────┬─────────┐
-│     url_surtkey      │         url          │  url_host_name   │ … │   warc_segment   │      crawl      │ subset  │
-│       varchar        │       varchar        │     varchar      │   │     varchar      │     varchar     │ varchar │
-├──────────────────────┼──────────────────────┼──────────────────┼───┼──────────────────┼─────────────────┼─────────┤
-│ org,wikipedia,an)/…  │ https://an.wikiped…  │ an.wikipedia.org │ … │ 1715971057216.39 │ CC-MAIN-2024-22 │ warc    │
-├──────────────────────┴──────────────────────┴──────────────────┴───┴──────────────────┴─────────────────┴─────────┤
-│ 1 rows                                                                                       32 columns (6 shown) │
-└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Our one row:
+100% ▕████████████████████████████████████████████████████████████▏ 
+url_surtkey | url | url_host_name | url_host_tld | url_host_2nd_last_part | url_host_3rd_last_part | url_host_4th_last_part | url_host_5th_last_part | url_host_registry_suffix | url_host_registered_domain | url_host_private_suffix | url_host_private_domain | url_host_name_reversed | url_protocol | url_port | url_path | url_query | fetch_time | fetch_status | fetch_redirect | content_digest | content_mime_type | content_mime_detected | content_charset | content_languages | content_truncated | warc_filename | warc_record_offset | warc_record_length | warc_segment | crawl | subset
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+org,wikipedia,an)/wiki/escopete | https://an.wikipedia.org/wiki/Escopete | an.wikipedia.org | org | wikipedia | an | NULL | NULL | org | wikipedia.org | org | wikipedia.org | org.wikipedia.an | https | NULL | /wiki/Escopete | NULL | 2024-05-18T01:58:10Z | 200 | NULL | RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU | text/html | text/html | UTF-8 | spa | NULL | crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz | 80610731 | 17423 | 1715971057216.39 | CC-MAIN-2024-22 | warc
 
-writing our one row to a local parquet file, whirlwind.parquet
-total records for local whirlwind.parquet should be 1
-┌──────────────┐
-│ count_star() │
-│    int64     │
-├──────────────┤
-│            1 │
-└──────────────┘
+Writing our one row to a local parquet file, whirlwind.parquet
+100% ▕████████████████████████████████████████████████████████████▏ 
+Total records for local whirlwind.parquet should be 1:
+1
 
-our one row, locally
-┌──────────────────────┬──────────────────────┬──────────────────┬───┬──────────────────┬─────────────────┬─────────┐
-│     url_surtkey      │         url          │  url_host_name   │ … │   warc_segment   │      crawl      │ subset  │
-│       varchar        │       varchar        │     varchar      │   │     varchar      │     varchar     │ varchar │
-├──────────────────────┼──────────────────────┼──────────────────┼───┼──────────────────┼─────────────────┼─────────┤
-│ org,wikipedia,an)/…  │ https://an.wikiped…  │ an.wikipedia.org │ … │ 1715971057216.39 │ CC-MAIN-2024-22 │ warc    │
-├──────────────────────┴──────────────────────┴──────────────────┴───┴──────────────────┴─────────────────┴─────────┤
-│ 1 rows                                                                                       32 columns (6 shown) │
-└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Our one row, locally:
+url_surtkey | url | url_host_name | url_host_tld | url_host_2nd_last_part | url_host_3rd_last_part | url_host_4th_last_part | url_host_5th_last_part | url_host_registry_suffix | url_host_registered_domain | url_host_private_suffix | url_host_private_domain | url_host_name_reversed | url_protocol | url_port | url_path | url_query | fetch_time | fetch_status | fetch_redirect | content_digest | content_mime_type | content_mime_detected | content_charset | content_languages | content_truncated | warc_filename | warc_record_offset | warc_record_length | warc_segment | crawl | subset
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+org,wikipedia,an)/wiki/escopete | https://an.wikipedia.org/wiki/Escopete | an.wikipedia.org | org | wikipedia | an | NULL | NULL | org | wikipedia.org | org | wikipedia.org | org.wikipedia.an | https | NULL | /wiki/Escopete | NULL | 2024-05-18T01:58:10Z | 200 | NULL | RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU | text/html | text/html | UTF-8 | spa | NULL | crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz | 80610731 | 17423 | 1715971057216.39 | CC-MAIN-2024-22 | warc
 
-complete row:
+Complete row:
   url_surtkey org,wikipedia,an)/wiki/escopete
   url https://an.wikipedia.org/wiki/Escopete
   url_host_name an.wikipedia.org
   url_host_tld org
   url_host_2nd_last_part wikipedia
   url_host_3rd_last_part an
-  url_host_4th_last_part None
-  url_host_5th_last_part None
+  url_host_4th_last_part null
+  url_host_5th_last_part null
   url_host_registry_suffix org
   url_host_registered_domain wikipedia.org
   url_host_private_suffix org
   url_host_private_domain wikipedia.org
   url_host_name_reversed org.wikipedia.an
   url_protocol https
-  url_port nan
+  url_port null
   url_path /wiki/Escopete
-  url_query None
-  fetch_time 2024-05-18 01:58:10+00:00
+  url_query null
+  fetch_time 2024-05-18T01:58:10Z
   fetch_status 200
-  fetch_redirect None
+  fetch_redirect null
   content_digest RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU
   content_mime_type text/html
   content_mime_detected text/html
   content_charset UTF-8
   content_languages spa
-  content_truncated None
+  content_truncated null
   warc_filename crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz
   warc_record_offset 80610731
   warc_record_length 17423
@@ -526,9 +508,8 @@ complete row:
   crawl CC-MAIN-2024-22
   subset warc
 
-equivalent to cdxj:
-org,wikipedia,an)/wiki/escopete 20240518015810 {"url": "https://an.wikipedia.org/wiki/Escopete", "mime": "text/html", "status": "200", "digest": "sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU", "length": "17423", "offset": "80610731", "filename": "crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz"}
-
+Equivalent to CDXJ:
+org,wikipedia,an)/wiki/escopete 20240518015810 {"url":"https://an.wikipedia.org/wiki/Escopete","mime":"text/html","status":"200","digest":"sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU","length":"17423","offset":"80610731","filename":"crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz"}
 ```
 </details>
 
