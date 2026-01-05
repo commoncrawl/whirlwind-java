@@ -20,7 +20,7 @@ In the Whirlwind Tour, we will:
 1) explore the WARC, WET and WAT file formats used to store Common Crawl's data.
 2) play with some useful Java libraries for interacting with the data: [jwarc](https://github.com/iipc/jwarc), TBA if needed
 and [duckdb](https://duckdb.org/).
-3) learn about how the data is compressed to allow random access.
+3) learn about how the data is compressed in an unusual way to allow random access.
 4) use the CDXJ index and the columnar index to access the data we want.
 
 **Prerequisites:** To get the most out of this tour, you should be comfortable with Maven, running commands on the command line, and basic SQL. Some knowledge of HTTP requests and HTML is also helpful but not essential. We assume you have [make](https://www.gnu.org/software/make/) and [Maven](https://maven.apache.org/) installed.
@@ -202,7 +202,7 @@ TBA
 
 ## Task 5: Wreck the WARC by compressing it wrong
 
-As mentioned earlier, WARC/WET/WAT files look like they're gzipped, but they're actually gzipped in a particular way that allows random access. This means that you can't `gunzip` and then `gzip` a warc without wrecking random access. This example:
+As mentioned earlier, WARC/WET/WAT files look like they're normal gzipped files, but they're actually gzipped in a particular way that allows random access. This means that you can't `gunzip` and then `gzip` a warc without wrecking random access. This example:
 
 * creates a copy of one of the warc files in the repo
 * using JWARC we list the records and their respective offsets
