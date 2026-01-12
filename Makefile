@@ -40,10 +40,6 @@ CC-MAIN-2024-22.warc.paths.gz:
 	@echo "note that this file should be in the repo"
 	 aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > CC-MAIN-2024-22.warc.paths.gz
 
-# duck_local_files:
-# 	@echo "warning! 300 gigabyte download"
-# 	python duck.py local_files
-#
 duck_ccf_local_files: build
 	@echo "warning! only works on Common Crawl Foundadtion's development machine"
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args"ccf_local_files"
