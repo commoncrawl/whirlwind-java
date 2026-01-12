@@ -337,11 +337,9 @@ Make sure you compress WARCs the right way!
 
 Some of our users only want to download a small subset of the crawl. They want to run queries against an index, either the CDX index we just talked about, or in the columnar index, which we'll talk about later.
 
-The CDX index is documented [here](https://github.com/webrecorder/pywb/wiki/CDX-Server-API#api-reference) and can be accessed through a HTTP API. 
+The CDX server API is documented [here](https://github.com/webrecorder/pywb/wiki/CDX-Server-API#api-reference) and can be accessed through a HTTP API. 
 
-There is a complete python package called 
-
-Right now there is no specific tool in Java for query the CDX index, nevertheless, we do have a very useful Python tool for working with the CDX index: [cdx_toolkit](https://github.com/cocrawler/cdx_toolkit). Please refer to the Python Whirlwind Tour for more details. 
+Right now there is no specific tool in Java for query the CDX index, nevertheless, we do have a very useful Python tool for working with the CDX index: [cdx_toolkit](https://github.com/cocrawler/cdx_toolkit). Please refer to the [Python Whirlwind Tour](https://github.com/commoncrawl/whirlwind-python) for more details. 
 
 In this task we will achieve the same results using direct HTTP API calls and JWARC. 
 
@@ -526,7 +524,7 @@ org,wikipedia,an)/wiki/escopete 20240518015810 {"url":"https://an.wikipedia.org/
 ```
 </details>
 
-The above command runs code in `duck.py`, which accesses the relevant part of the index for our crawl (CC-MAIN-2024-22) and then counts the number of records in that crawl (2709877975!). The code runs the SQL query we saw before which should match the single response record we want. 
+The above command runs code in `Duck.java`, which accesses the relevant part of the index for our crawl (CC-MAIN-2024-22) and then counts the number of records in that crawl (2709877975!). The code runs the SQL query we saw before which should match the single response record we want. 
 
 The program then writes that one record into a local Parquet file, does a second query that returns that one record, and shows the full contents of the record. We can see that the complete row contains many columns containing different information associated with our record. Finally, it converts the row to the CDXJ format we saw before. 
 
@@ -534,10 +532,9 @@ The program then writes that one record into a local Parquet file, does a second
 
 If you want to run many of these queries, and you have a lot of disk space, you'll want to download the 300 gigabyte index and query it repeatedly. Run
 
-```make duck_local_files```
-
-If the files aren't already downloaded, this command will give you
-download instructions.
+```shell
+aws s3 sync s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ .'
+```
 
 (**Bonus bonus:** If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```.)
 
@@ -547,12 +544,12 @@ All of these scripts run the same SQL query and should return the same record (w
 
 1. Use the DuckDb techniques from [Task 8](#task-8-query-using-the-columnar-index--duckdb-from-outside-aws) and the [Index Server](https://index.commoncrawl.org) to find a new webpage in the archives. 
 2. Note its url, warc, and timestamp. 
-3. Now open up the Makefile from [Task 6](#task-6-use-cdx_toolkit-to-query-the-full-cdx-index-and-download-those-captures-from-aws-s3) and look at the actions from the cdx_toolkit section.
+3. Now open up the Makefile from [Task 6](#task-6-query-the-full-cdx-index-and-download-those-captures-from-aws-s3) and look at the actions from the cdx_toolkit section.
 4. Repeat the cdx_toolkit steps, but for the page and date range you found above.
 
 ## Congratulations!
 
-You have completed the Whirlwind Tour of Common Crawl's Datasets using Python! You should now understand different filetypes we have in our corpus and how to interact with Common Crawl's datasets using Python. To see what other people have done with our data, see the  [Examples page](https://commoncrawl.org/examples) on our website. Why not join our Discord through the Community tab?
+You have completed the Whirlwind Tour of Common Crawl's Datasets using Java! You should now understand different filetypes we have in our corpus and how to interact with Common Crawl's datasets using Java. To see what other people have done with our data, see the  [Examples page](https://commoncrawl.org/examples) on our website. Why not join our Discord through the Community tab?
 
 
 ## Other datasets
