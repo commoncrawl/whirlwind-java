@@ -26,6 +26,7 @@
 			<artifactId>jwarc</artifactId>
 			<version>0.33.0</version>
 		</dependency>
+
 	</dependencies>
 
 	<build>
