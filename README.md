@@ -20,7 +20,7 @@ In the Whirlwind Tour, we will:
 1) explore the WARC, WET and WAT file formats used to store Common Crawl's data.
 2) play with some useful Java libraries for interacting with the data: [jwarc](https://github.com/iipc/jwarc), TBA if needed
 and [duckdb](https://duckdb.org/).
-3) learn about how the data is compressed to allow random access.
+3) learn about how the data is compressed in an unusual way to allow random access.
 4) use the CDXJ index and the columnar index to access the data we want.
 
 **Prerequisites:** To get the most out of this tour, you should be comfortable with Maven, running commands on the command line, and basic SQL. Some knowledge of HTTP requests and HTML is also helpful but not essential. We assume you have [make](https://www.gnu.org/software/make/) and [Maven](https://maven.apache.org/) installed.
@@ -90,107 +90,327 @@ Now that we've looked at the uncompressed versions of these files to understand 
 
 ## Task 2: Iterate over WARC, WET, and WAT files
 
-The [JWar](https://github.com/iipc/jwarc) Java library lets us read and write WARC files programmatically.
-```mermaid
-flowchart LR
-    user["userprocess (r/w)"]--JWar (w) -->warc
-    warc --JWar (r)--> user 
-    warc@{shape: cyl}
+The [JWarc](https://github.com/iipc/jwarc) Java library lets us read and write WARC files both programmatically and via a CLI.
+
+You should download the [JWarc](https://github.com/iipc/jwarc)'s JAR using `make get_jwarc` which should download the JAR in the root directory. 
+If you download it yourself, we recommend you to rename it to remove the version from the jar filename, so you can copy-paste the commands directly.
+You can now explore the CLI commands available by running:
+
+```shell
+java -jar jwarc.jar --help
 ```
-Let's use it to iterate over our WARC, WET, and WAT files and print out the record types we looked at before. First, look at the code in `org.commoncrawl.whirlwind.ReadWARC`:
 
 <details>
-  <summary>Click to view code</summary>
+  <summary>Click to view the result</summary>
 
-```java
-package org.commoncrawl.whirlwind;
+```
+usage: jwarc <command> [args]...
 
-import org.netpreserve.jwarc.MessageHeaders;
-import org.netpreserve.jwarc.WarcReader;
+Commands:
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
+  cdx         List records in CDX format
+  cdxj        List records in CDXJ format
+  dedupe      Deduplicate records by looking up a CDX server
+  extract     Extract record by offset
+  fetch       Download a URL recording the request and response
+  filter      Copy records that match a given filter expression
+  ls          List records in WARC file(s)
+  record      Fetch a page and subresources using headless Chrome
+  recorder    Run a recording proxy
+  saveback    Saves wayback-style replayed pages as WARC records
+  screenshot  Take a screenshot of each page in the given WARCs
+  serve       Serve WARC files with a basic replay server/proxy
+  stats       Print statistics about WARC and CDX files
+  validate    Validate WARC or ARC files
+  version     Print version information
+```
 
-public class ReadWARC {
+</details>
 
-    public static void main(String[] args) throws IOException {
+Let's iterate over our WARC, WET, and WAT files and print out the record types we looked at before. We will see the use of `ls` for listing records and offsets, and `extract` for pulling out records information (payload, headers) using the offsets as reference. ~~First, look at the code in `org.commoncrawl.whirlwind.ReadWARC`~~:
 
-        if (args.length != 1) {
-            System.err.println("Usage: java ReadWARC <input-warc-file>");
-            System.exit(1);
-        }
+```shell
+java -jar jwarc.jar ls data/whirlwind.warc.gz
+         0 warcinfo   -    -
+       516 request    GET  https://an.wikipedia.org/wiki/Escopete
+      1023 response   200  https://an.wikipedia.org/wiki/Escopete
+     18374 metadata   -    https://an.wikipedia.org/wiki/Escopete
+```
 
-        Path requested = Path.of(args[0]).toAbsolutePath().normalize();
-        if (!Files.isRegularFile(requested)) {
-            throw new SecurityException("Invalid WARC path");
-        }
+The `java -jar jwarc.jar ls` command lists the records in a WARC file, showing the offset, type, HTTP status code (if applicable), and target URI for each record.
 
-        final List<String> RESPONSE_TYPES = Arrays.asList("request", "response", "conversion", "metadata");
+You can then extract information about the response record:
+```shell
+java -jar jwarc.jar extract data/whirlwind.warc.gz 1023
+```
 
-        try (
-                InputStream in = Files.newInputStream(requested);
-                WarcReader reader = new WarcReader(in)
-        ) {
-            reader.records().forEach(record -> {
-                System.out.println(" WARC-Type: " + record.type());
-                if (RESPONSE_TYPES.contains(record.type())) {
-                    MessageHeaders headers = record.headers();
-                    for (String header : headers.all("WARC-Target-URI")) {
-                        System.out.println(" WARC-Target-URI " + header);
-                    }
-                }
-            });
-        }
-    }
-}
+This command will return the full record: headers and payload. Is possible to select either by passing the `--payload` or `--headers` parameters before the filename. 
 
+```shell
+java -jar jwarc.jar extract --headers data/whirlwind.warc.gz 1023
+```
+<details>
+  <summary>Click to view the result</summary>
 
+```
+WARC/1.0
+Content-Length: 74581
+Content-Type: application/http; msgtype=response
+WARC-Block-Digest: sha1:35FTUGFVNWRVTZQGCWIX2MQA3LMYC7X7
+WARC-Concurrent-To: <urn:uuid:292f457d-203c-42f2-a1b5-69a4dabefd4f>
+WARC-Date: 2024-05-18T01:58:10Z
+WARC-Identified-Payload-Type: text/html
+WARC-IP-Address: 208.80.154.224
+WARC-Payload-Digest: sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU
+WARC-Record-ID: <urn:uuid:2aabeff2-67f5-4608-8466-e87c6296e2b6>
+WARC-Target-URI: https://an.wikipedia.org/wiki/Escopete
+WARC-Type: response
+WARC-Warcinfo-ID: <urn:uuid:668d88fc-4208-41fc-b327-1aa6cb783331>
+
+HTTP/1.1 200 OK
+date: Sat, 18 May 2024 01:58:10 GMT
+server: mw-web.eqiad.canary-bb67b76b8-jtwdb
+x-content-type-options: nosniff
+content-language: an
+origin-trial: AonOP4SwCrqpb0nhZbg554z9iJimP3DxUDB8V4yu9fyyepauGKD0NXqTknWi4gnuDfMG6hNb7TDUDTsl0mDw9gIAAABmeyJvcmlnaW4iOiJodHRwczovL3dpa2lwZWRpYS5vcmc6NDQzIiwiZmVhdHVyZSI6IlRvcExldmVsVHBjZCIsImV4cGlyeSI6MTczNTM0Mzk5OSwiaXNTdWJkb21haW4iOnRydWV9
+accept-ch: 
+vary: Accept-Encoding,Cookie,Authorization
+last-modified: Sat, 04 May 2024 01:58:10 GMT
+content-type: text/html; charset=UTF-8
+X-Crawler-content-encoding: gzip
+age: 0
+x-cache: cp1106 miss, cp1106 miss
+x-cache-status: miss
+server-timing: cache;desc="miss", host;desc="cp1106"
+strict-transport-security: max-age=106384710; includeSubDomains; preload
+report-to: { "group": "wm_nel", "max_age": 604800, "endpoints": [{ "url": "https://intake-logging.wikimedia.org/v1/events?stream=w3c.reportingapi.network_error&schema_uri=/w3c/reportingapi/network_error/1.0.0" }] }
+nel: { "report_to": "wm_nel", "max_age": 604800, "failure_fraction": 0.05, "success_fraction": 0.0}
+set-cookie: WMF-Last-Access=18-May-2024;Path=/;HttpOnly;secure;Expires=Wed, 19 Jun 2024 00:00:00 GMT
+set-cookie: WMF-Last-Access-Global=18-May-2024;Path=/;Domain=.wikipedia.org;HttpOnly;secure;Expires=Wed, 19 Jun 2024 00:00:00 GMT
+set-cookie: WMF-DP=1a6;Path=/;HttpOnly;secure;Expires=Sat, 18 May 2024 00:00:00 GMT
+x-client-ip: 34.239.158.223
+cache-control: private, s-maxage=0, max-age=0, must-revalidate
+set-cookie: GeoIP=US:VA:Ashburn:39.05:-77.49:v4; Path=/; secure; Domain=.wikipedia.org
+set-cookie: NetworkProbeLimit=0.001;Path=/;Secure;Max-Age=3600
+accept-ranges: bytes
+X-Crawler-transfer-encoding: chunked
+Content-Length: 72848
 ```
 </details>
 
-The `org.commoncrawl.whirlwind.ReadWARC` reads the WARC content using JDK Streams in a single pass and allows us to access the attributes of each record (e.g. the record type through `record.type()`).
+Now, let's have a look at the WET and WAT compressed files.  
+You can obtain similar information by running `ls` on those files: 
+```shell
+java -jar jwarc.jar ls data/whirlwind.warc.wet.gz 
+         0 warcinfo   -    -
+       466 conversion -    https://an.wikipedia.org/wiki/Escopete
+```
 
-Now run: 
+and 
 
-`make iterate` 
+```shell
+java -jar jwarc.jar ls data/whirlwind.warc.wat.gz 
+         0 warcinfo   -    -
+       443 metadata   -    https://an.wikipedia.org/wiki/Escopete
+```
 
-This will run `org.commoncrawl.whirlwind.ReadWARC` on `whirlwind.warc.gz`, `whirlwind.warc.wet.gz`, and `whirlwind.warc.wat.gz` in turn. You should see output like the following:
+Following the same principle, you can obtain the converted text payload by running: 
+
+```shell
+java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz
+```
 
 <details>
-  <summary>Click to view output</summary>
+  <summary>Click to view the result</summary>
 
 ```
-iterating over all of the local warcs:
-
-warc:
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="whirlwind.warc.gz"
- WARC-Type: warcinfo
- WARC-Type: request
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: response
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-
-wet:
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="whirlwind.warc.wet.gz"
- WARC-Type: warcinfo
- WARC-Type: conversion
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-
-wat:
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="whirlwind.warc.wat.gz"
- WARC-Type: warcinfo
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+Escopete - Biquipedia, a enciclopedia libre
+Ir al contenido
+Menú principal
+Menú principal
+mover a la barra lateral
+ocultar
+Navego
+Portalada
+A tabierna
+Actualidat
+Zaguers cambeos
+Una pachina a l'azar
+Aduya
+Donativos
+Mirar
+Mirar-lo
+Creyar cuenta
+Dentrar-ie
+Ferramientas personals
+Creyar cuenta
+Dentrar-ie
+Páginas para editores desconectados más información
+Contribucions
+Pachina de descusión d'ista IP
+Contenidos
+mover a la barra lateral
+ocultar
+Inicio
+1Cheografía
+2Historia
+3Administración
+Alternar subsección Administración
+3.1Alcaldes
+4Molimentos
+5Fiestas
+6Referencias
+7Vinclos externos
+Cambiar a la tabla de contenidos
+Escopete
+32 idiomas
+Asturianu
+Brezhoneg
+Català
+Нохчийн
+Cebuano
+Deutsch
+English
+Esperanto
+Español
+Euskara
+Français
+Magyar
+Interlingua
+Interlingue
+Italiano
+Қазақша
+Ladin
+Lombard
+Bahasa Melayu
+Nederlands
+Occitan
+Polski
+Português
+Русский
+Svenska
+Татарча / tatarça
+Українська
+Vèneto
+Tiếng Việt
+Winaray
+中文
+閩南語 / Bân-lâm-gú
+Modificar os enlaces
+Pachina
+Discusión
+aragonés
+Leyer
+Editar
+Modificar codigo
+Amostrar l'historial
+Ferramientas
+Herramientas
+mover a la barra lateral
+ocultar
+Acciones
+Leyer
+Editar
+Modificar codigo
+Amostrar l'historial
+General
+Pachinas que enlazan con ista
+Cambios relacionatos
+Cargar fichero
+Pachinas especials
+Vinclo permanent
+Información d'a pachina
+Citar ista pachina
+Obtener URL acortado
+Descargar código QR
+Elemento de Wikidata
+Imprentar/exportar
+Creyar un libro
+Descargar como PDF
+Versión ta imprentar
+En otros proyectos
+Wikimedia Commons
+De Biquipedia
+Iste articlo ye en proceso de cambio enta la ortografía oficial de Biquipedia (la Ortografía de l'aragonés de l'Academia Aragonesa d'a Luenga). Puez aduyar a completar este proceso revisando l'articlo, fendo-ie los cambios ortograficos necesarios y sacando dimpués ista plantilla.
+Escopete
+Municipio de Castiella-La Mancha
+Entidat
+• Estau
+• Comunidat
+• Provincia
+• Comarca Municipio
+Espanya
+Castiella-La Mancha
+Guadalachara
+La Alcarria
+Superficie 19,01 km²
+Población
+• Total
+68 hab. (2013)
+Altaria
+• Meyana
+860 m.
+Distancia
+• 47 km
+enta Guadalachara
+Alcalde Hilario Lopez Ferrer
+Codigo postal 19119
+Chentilicio escopetero / escopetera
+(en castellano)
+Coordenadas
+40°24’59’’N 3° 0’23’’U
+Escopete
+Escopete en Castiella-La Mancha
+Escopete ye un municipio d'a provincia de Guadalachara, en a comunidat autonoma de Castiella-La Mancha, Espanya, comarca de La Alcarria y partiu chudicial de Guadalachara.
+A suya población ye de 84 habitants (2007), en una superficie de 19,01 km² y una densidat de población de 4,42 hab/km².
+Cheografía[editar | modificar o codigo]
+Ye situato a 860 metros d'altaria sobre o ran d'a mar, a una distancia de 47 km de Guadalachara, a capital d'a suya provincia, y d'o suyo termin municipal fa parti o lugar de Monteumbría.
+Historia[editar | modificar o codigo]
+Escopete ye citato en as Relaciones Topográficas de los pueblos de Espanya, feitas por Felipe II de Castiella en 1578.
+Administración[editar | modificar o codigo]
+Alcaldes[editar | modificar o codigo]
+Lista d'alcaldes
+Lechislatura
+Nombre
+Partiu politico
+1979–1983
+1983–1987
+1987–1991
+1991–1995
+1995–1999
+1999–2003
+2003–2007
+2007–2011 Hilario López Herrer Partido Socialista Obrero Español
+Molimentos[editar | modificar o codigo]
+Ilesia parroquial de l'Asunción, d'estilo romanico, d'o sieglo XIII.[1] Fue parcialment destruita en a Guerra Civil espanyola.
+Fiestas[editar | modificar o codigo]
+11 d'agosto.[1]
+Referencias[editar | modificar o codigo]
+↑ 1,0 1,1 Deputación Provincial de Guadalachara.
+Vinclos externos[editar | modificar o codigo]
+(es) Escopete en a pachina web d'a Deputación Provincial de Guadalachara.
+Obteniu de "https://an.wikipedia.org/w/index.php?title=Escopete&oldid=2049929"
+Categoría:
+Localidaz d'a provincia de Guadalachara
+Categorías amagadas:
+Biquiprochecto:Grafía/Articlos con grafía EFA
+Wikipedia:Articlos con datos por tresladar ta Wikidata
+Zaguera edición d'ista pachina o 17 ago 2023 a las 21:26.
+O texto ye disponible baixo a Licencia Creative Commons Atribución/Compartir-Igual; talment sigan d'aplicación clausulas adicionals. Mire-se os termins d'uso ta conoixer más detalles.
+Politica de privacidat
+Sobre Biquipedia
+Alvertencias chenerals
+Código de conducta
+Desembolicadors
+Estatisticas
+Declaración de cookies
+Versión ta mobils
+Activar o desactivar el límite de anchura del contenido
 ```
+
 </details>
 
-The output has three sections, one each for the WARC, WET, and WAT. For each one, it prints the record types we saw before, plus the `WARC-Target-URI` for those record types that have it.
+Feel free to experiment more by looking at other part of the records, or extracting different records. 
 
 ## Task 3: Index the WARC, WET, and WAT
 
@@ -269,14 +489,16 @@ Notice that we extracted HTML from the WARC, text from WET, and JSON from the WA
 
 ## Task 5: Wreck the WARC by compressing it wrong
 
-As mentioned earlier, WARC/WET/WAT files look like they're gzipped, but they're actually gzipped in a particular way that allows random access. This means that you can't `gunzip` and then `gzip` a warc without wrecking random access. This example:
+As mentioned earlier, WARC/WET/WAT files look like they're normal gzipped files, but they're actually gzipped in a particular way that allows random access. This means that you can't `gunzip` and then `gzip` a warc without wrecking random access. This example:
 
 * creates a copy of one of the warc files in the repo
+* using JWARC we list the records and their respective offsets
+* we access one of the records in the middle of the archive to show that it works
 * uncompresses it
 * recompresses it the wrong way
-* runs `org.commoncrawl.whirlwind.ReadWARC` over it to show that it triggers an error (in fact in java it does not trigger an error... )
+* access one of the records in the middle of the archive of the compressed file showing that it fails 
 * recompresses it the right way using `org.commoncrawl.whirlwind.RecompressWARC`
-* shows that this compressed file works
+* show that it works now accessing one of the records in the middle of the archive
 
 Run
 
@@ -293,55 +515,97 @@ cp data/whirlwind.warc.gz data/testing.warc.gz
 rm -f data/testing.warc
 gzip -d data/testing.warc.gz  # windows gunzip no work-a
 
-iterate over this uncompressed warc: works
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc"
- WARC-Type: warcinfo
- WARC-Type: request
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: response
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
-
 compress it the wrong way
 gzip data/testing.warc
 
-iterating over this compressed warc fails
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz" || /usr/bin/true
-This file is probably not a multi-member gzip but a single gzip file.
-To allow seek, a gzipped WARC must have each record compressed into a single gzip member and concatenated together.
+showing the records in the compressed warc - note the offsets of request and response are identical 
+java -jar jwarc.jar ls data/testing.warc.gz
+         0 warcinfo   -    -
+      3734 request    GET  https://an.wikipedia.org/wiki/Escopete
+      3734 response   200  https://an.wikipedia.org/wiki/Escopete
+     18386 metadata   -    https://an.wikipedia.org/wiki/Escopete
 
-This file is likely still valid and can be fixed by running:
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="testing.warc testing.warc.gz"
+access the request record - failing
+java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+Exception in thread "main" org.netpreserve.jwarc.ParsingException: invalid WARC record at position 0: <-- HERE -->\xffffff87@\r\xffffffa1\xffffffca\xffffff84\x1d\xffffffca\x0f0\xffffffb4\xffffff93\xfffffff9\xffffffc5\xfffffff3\xffffff89\xffffffeb?\x1b\xffffff87,q\xffffffed\xffffffb3!s\xffffffc1\x08\xffffff83\\xffffffe0T\xffffffadG\xffffffdcd5\x02\xffffffbaQ... (offset 3734)
+        at org.netpreserve.jwarc.WarcParser.parse(WarcParser.java:356)
+        at org.netpreserve.jwarc.WarcReader.next(WarcReader.java:181)
+        at org.netpreserve.jwarc.tools.ExtractTool.main(ExtractTool.java:141)
+        at org.netpreserve.jwarc.tools.WarcTool.main(WarcTool.java:26)
+
+access the response record - failing
+java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+Exception in thread "main" org.netpreserve.jwarc.ParsingException: invalid WARC record at position 0: <-- HERE -->\xffffff87@\r\xffffffa1\xffffffca\xffffff84\x1d\xffffffca\x0f0\xffffffb4\xffffff93\xfffffff9\xffffffc5\xfffffff3\xffffff89\xffffffeb?\x1b\xffffff87,q\xffffffed\xffffffb3!s\xffffffc1\x08\xffffff83\\xffffffe0T\xffffffadG\xffffffdcd5\x02\xffffffbaQ... (offset 3734)
+        at org.netpreserve.jwarc.WarcParser.parse(WarcParser.java:356)
+        at org.netpreserve.jwarc.WarcReader.next(WarcReader.java:181)
+        at org.netpreserve.jwarc.tools.ExtractTool.main(ExtractTool.java:141)
+        at org.netpreserve.jwarc.tools.WarcTool.main(WarcTool.java:26)
 
 now let's do it the right way
 gzip -d data/testing.warc.gz
 mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="data/testing.warc data/testing.warc.gz"
 
-and now iterating works
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz"
- WARC-Type: warcinfo
- WARC-Type: request
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: response
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
- WARC-Type: metadata
- WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+showing the records in the compressed warc
+java -jar jwarc.jar ls data/testing.warc.gz
+         0 warcinfo   -    -
+       518 request    GET  https://an.wikipedia.org/wiki/Escopete
+      1027 response   200  https://an.wikipedia.org/wiki/Escopete
+     18383 metadata   -    https://an.wikipedia.org/wiki/Escopete
+
+access the request record - works
+java -jar jwarc.jar extract data/testing.warc.gz 518 | head
+WARC/1.0
+Content-Length: 265
+Content-Type: application/http; msgtype=request
+WARC-Block-Digest: sha1:IE7NEN3QEJHUCYRRGVMHDDW3BEHFRQ6V
+WARC-Date: 2024-05-18T01:58:10Z
+WARC-IP-Address: 208.80.154.224
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Record-ID: <urn:uuid:292f457d-203c-42f2-a1b5-69a4dabefd4f>
+WARC-Target-URI: https://an.wikipedia.org/wiki/Escopete
+WARC-Type: request
+
+access the response record - works
+java -jar jwarc.jar extract data/testing.warc.gz 1027 | head -n 20
+WARC/1.0
+Content-Length: 74581
+Content-Type: application/http; msgtype=response
+WARC-Block-Digest: sha1:35FTUGFVNWRVTZQGCWIX2MQA3LMYC7X7
+WARC-Concurrent-To: <urn:uuid:292f457d-203c-42f2-a1b5-69a4dabefd4f>
+WARC-Date: 2024-05-18T01:58:10Z
+WARC-Identified-Payload-Type: text/html
+WARC-IP-Address: 208.80.154.224
+WARC-Payload-Digest: sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU
+WARC-Record-ID: <urn:uuid:2aabeff2-67f5-4608-8466-e87c6296e2b6>
+WARC-Target-URI: https://an.wikipedia.org/wiki/Escopete
+WARC-Type: response
+WARC-Warcinfo-ID: <urn:uuid:668d88fc-4208-41fc-b327-1aa6cb783331>
+
+HTTP/1.1 200 OK
+date: Sat, 18 May 2024 01:58:10 GMT
+server: mw-web.eqiad.canary-bb67b76b8-jtwdb
+x-content-type-options: nosniff
+content-language: an
+origin-trial: AonOP4SwCrqpb0nhZbg554z9iJimP3DxUDB8V4yu9fyyepauGKD0NXqTknWi4gnuDfMG6hNb7TDUDTsl0mDw9gIAAABmeyJvcmlnaW4iOiJodHRwczovL3dpa2lwZWRpYS5vcmc6NDQzIiwiZmVhdHVyZSI6IlRvcExldmVsVHBjZCIsImV4cGlyeSI6MTczNTM0Mzk5OSwiaXNTdWJkb21haW4iOnRydWV9
 ```
 
 </details>
 
 Make sure you compress WARCs the right way!
 
-## Task 6: Use cdx_toolkit to query the full CDX index and download those captures from AWS S3
+## Task 6: Query the full CDX index and download those captures from AWS S3
 
 Some of our users only want to download a small subset of the crawl. They want to run queries against an index, either the CDX index we just talked about, or in the columnar index, which we'll talk about later.
 
-The [cdx_toolkit](https://github.com/cocrawler/cdx_toolkit) is a set of tools for working with CDX indices of web crawls and archives. It knows how to query the CDX index across all of our crawls and also can create WARCs of just the records you want. We will fetch the same record from Wikipedia that we've been using for the whirlwind tour.
+The CDX server API is documented [here](https://github.com/webrecorder/pywb/wiki/CDX-Server-API#api-reference) and can be accessed through a HTTP API. 
+
+Right now there is no specific tool in Java for query the CDX index, nevertheless, we do have a very useful Python tool for working with the CDX index: [cdx_toolkit](https://github.com/cocrawler/cdx_toolkit). Please refer to the [Python Whirlwind Tour](https://github.com/commoncrawl/whirlwind-python) for more details. 
+
+In this task we will achieve the same results using direct HTTP API calls and JWARC. 
 
 Run
 
-```make cdx_toolkit```
+```make query_cdx```
 
 The output looks like this:
 
@@ -350,24 +614,25 @@ The output looks like this:
 
 ```
 demonstrate that we have this entry in the index
-cdxt --crawl CC-MAIN-2024-22 --from 20240518015810 --to 20240518015810 iter an.wikipedia.org/wiki/Escopete
-status 200, timestamp 20240518015810, url https://an.wikipedia.org/wiki/Escopete
+curl https://index.commoncrawl.org/CC-MAIN-2024-22-index?url=an.wikipedia.org/wiki/Escopete&output=json&from=20240518015810&to=20240518015810
+
+{"urlkey": "org,wikipedia,an)/wiki/escopete", "timestamp": "20240518015810", "url": "https://an.wikipedia.org/wiki/Escopete", "mime": "text/html", "mime-detected": "text/html", "status": "200", "digest": "RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU", "length": "17423", "offset": "80610731", "filename": "crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz", "languages": "spa", "encoding": "UTF-8"}
 
 cleanup previous work
 rm -f TEST-000000.extracted.warc.gz
-retrieve the content from the commoncrawl s3 bucket
-cdxt --crawl CC-MAIN-2024-22 --from 20240518015810 --to 20240518015810 warc an.wikipedia.org/wiki/Escopete
+retrieve the content from the commoncrawl s3 bucket (offset: 80628153 = 80610731 + 17423 - 1)
+curl --request GET \
+  --url https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz \
+  --header 'Range: bytes=80610731-80628153' > TEST-000000.extracted.warc.gz
 
 index this new warc
-cdxj-indexer TEST-000000.extracted.warc.gz  > TEST-000000.extracted.warc.cdxj
+java -jar jwarc.jar cdxj TEST-000000.extracted.warc.gz  > TEST-000000.extracted.warc.cdxj
 cat TEST-000000.extracted.warc.cdxj
 org,wikipedia,an)/wiki/escopete 20240518015810 {"url": "https://an.wikipedia.org/wiki/Escopete", "mime": "text/html", "status": "200", "digest": "sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU", "length": "17455", "offset": "406", "filename": "TEST-000000.extracted.warc.gz"}
 
 iterate this new warc
-python ./warcio-iterator.py TEST-000000.extracted.warc.gz
-  WARC-Type: warcinfo
-  WARC-Type: response
-    WARC-Target-URI https://an.wikipedia.org/wiki/Escopete
+java -jar jwarc.jar ls TEST-000000.extracted.warc.gz
+ 0 response   200  https://an.wikipedia.org/wiki/Escopete
 ```
 
 </details>
@@ -376,22 +641,28 @@ There's a lot going on here so let's unpack it a little.
 
 #### Check that the crawl has a record for the page we are interested in
 
-We check for capture results using the `cdxt` command `iter`, specifying the exact URL `an.wikipedia.org/wiki/Escopete` and the timestamp range `--from 20240518015810 --to 20240518015810`. The result of this tells us that the crawl successfuly fetched this page at timestamp `20240518015810`. 
+We check for capture results querying the index.commoncrawl.org with GET parameters, specifying the crawl (`CC-MAIN-2024-22-index`), the exact URL `an.wikipedia.org/wiki/Escopete` and the timestamp range `from=20240518015810` and `to=20240518015810`. 
+The result of this tells us that the crawl successfully fetched this page at timestamp `20240518015810`. 
 * Captures are named by the surtkey and the time.
-* Instead of `--crawl CC-MAIN-2024-22`, you could pass `--cc` to search across all crawls.
-* You can pass `--limit <N>` to limit the number of results returned - in this case because we have restricted the timestamp range to a single value, we only expect one result.
+
+[//]: # (* If you need to search across all crawls,  of `--crawl CC-MAIN-2024-22`, you could pass `--cc` to search across all crawls.)
+[//]: # (Here I'm tempted to mention that you should use the columnar index for this kind of operations, however cdx_toolkit iterate over all crawls when called with -cc, if I'm not wrong)
+* You can use the parameter `limit=<N>` to limit the number of results returned - in this case because we have restricted the timestamp range to a single value, we only expect one result.
 * URLs may be specified with wildcards to return even more results: `"an.wikipedia.org/wiki/Escop*"` matches `an.wikipedia.org/wiki/Escopulión` and `an.wikipedia.org/wiki/Escopete`.
 
 #### Retrieve the fetched content as WARC
 
-Next, we use the `cdxt` command `warc` to retrieve the content and save it locally as a new WARC file, again specifying the exact URL, crawl identifier, and timestamp range. This creates the WARC file `TEST-000000.extracted.warc.gz` which contains a `warcinfo` record explaining what the WARC is, followed by the `response` record we requested. 
-* If you dig into cdx_toolkit's code, you'll find that it is using the offset and length of the WARC record (as returned by the CDX index query) to make a HTTP byte range request to S3 that isolates and returns just the single record we want from the full file. It only downloads the response WARC record because our CDX index only has the response records indexed.
-* By default `cdxt` avoids overwriting existing files by automatically incrementing the counter in the filename. If you run this again without deleting `TEST-000000.extracted.warc.gz`, the data will be written again to a new file `TEST-000001.extracted.warc.gz`.
-* Limit, timestamp, and crawl index args, as well as URL wildcards, work as for `iter`.
+Next, we make another HTTP call to retrieve the content and save it locally as a new WARC file, again specifying the exact URL, crawl identifier, and timestamp range. 
+This creates the WARC file `TEST-000000.extracted.warc.gz` 
+
+[//]: # (Here there is no warcinfo when getting from data.commoncrawl.org, right?)
+[//]: # (which contains a `warcinfo` record explaining what the WARC is, followed by the `response` record we requested. )
+* If you check the cURL command, you'll find that it is using the offset and length of the WARC record (as returned by the CDX index query) to make an HTTP byte range request to `data.commoncrawl.org` that isolates and returns just the single record we want from the full file. It only downloads the response WARC record because our CDX index only has the response records indexed.
+* Limit, timestamp, and crawl index parameters, as well as URL wildcards.
 
 ### Indexing the WARC and viewing its contents
 
-Finally, we run `cdxj-indexer` on this new WARC to make a CDXJ index of it as in Task 3, and then iterate over the WARC using `warcio-iterator.py` as in Task 2.
+Finally, we run `jwarc cdxj` that process the WARC to make a CDXJ index of it as in Task 3, and then list the records using `jwarc ls` as in Task 2.
 
 ## Task 7: Find the right part of the columnar index 
 
