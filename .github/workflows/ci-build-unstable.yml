@@ -14,8 +14,8 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-          cache: 'mvn'
-      - name: Build with Gradle
+          cache: maven
+      - name: Build with Maven
         run: mvn -B clean compile
       - name: Check with spotless
         run: mvn spotless:check

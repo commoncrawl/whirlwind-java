@@ -63,19 +63,28 @@ wreck_the_warc: build get_jwarc
 	rm -f data/testing.warc
 	gzip -d data/testing.warc.gz  # windows gunzip no work-a
 	@echo
-	@echo iterate over this uncompressed warc: works
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc"
-	@echo
 	@echo compress it the wrong way
 	gzip data/testing.warc
 	@echo
-	@echo iterating over this compressed warc fails
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz" || /usr/bin/true
+	@echo showing the records in the compressed warc - note the offsets of request and response are
+	java -jar jwarc-0.33.0.jar ls data/testing.warc.gz
+	@echo
+	@echo access the request record - failing
+	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+	@echo
+	@echo access the response record - failing
+	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 3734 || /usr/bin/true
 	@echo
 	@echo "now let's do it the right way"
 	gzip -d data/testing.warc.gz
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="data/testing.warc data/testing.warc.gz"
 	@echo
-	@echo and now iterating works
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz"
+	@echo showing the records in the compressed warc - note the skewed offsets of request and response
+	java -jar jwarc-0.33.0.jar ls data/testing.warc.gz
+	@echo
+	@echo access the request record - works
+	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 518 | head
+	@echo
+	@echo access the response record - works
+	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 1027 | head -n 20
 	@echo

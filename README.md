@@ -422,7 +422,109 @@ TBA
 
 ## Task 5: Wreck the WARC by compressing it wrong
 
-TBA
+As mentioned earlier, WARC/WET/WAT files look like they're normal gzipped files, but they're actually gzipped in a particular way that allows random access. This means that you can't `gunzip` and then `gzip` a warc without wrecking random access. This example:
+
+* creates a copy of one of the warc files in the repo
+* using JWARC we list the records and their respective offsets
+* we access one of the records in the middle of the archive to show that it works
+* uncompresses it
+* recompresses it the wrong way
+* access one of the records in the middle of the archive of the compressed file showing that it fails 
+* recompresses it the right way using `org.commoncrawl.whirlwind.RecompressWARC`
+* show that it works now accessing one of the records in the middle of the archive
+
+Run
+
+```make wreck_the_warc```
+
+and read through the output. You should get something like the output below:
+
+<details>
+  <summary>Click to view output</summary>
+
+```
+we will break and then fix this warc
+cp data/whirlwind.warc.gz data/testing.warc.gz
+rm -f data/testing.warc
+gzip -d data/testing.warc.gz  # windows gunzip no work-a
+
+compress it the wrong way
+gzip data/testing.warc
+
+showing the records in the compressed warc - note the offsets of request and response are identical 
+java -jar jwarc.jar ls data/testing.warc.gz
+         0 warcinfo   -    -
+      3734 request    GET  https://an.wikipedia.org/wiki/Escopete
+      3734 response   200  https://an.wikipedia.org/wiki/Escopete
+     18386 metadata   -    https://an.wikipedia.org/wiki/Escopete
+
+access the request record - failing
+java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+Exception in thread "main" org.netpreserve.jwarc.ParsingException: invalid WARC record at position 0: <-- HERE -->\xffffff87@\r\xffffffa1\xffffffca\xffffff84\x1d\xffffffca\x0f0\xffffffb4\xffffff93\xfffffff9\xffffffc5\xfffffff3\xffffff89\xffffffeb?\x1b\xffffff87,q\xffffffed\xffffffb3!s\xffffffc1\x08\xffffff83\\xffffffe0T\xffffffadG\xffffffdcd5\x02\xffffffbaQ... (offset 3734)
+        at org.netpreserve.jwarc.WarcParser.parse(WarcParser.java:356)
+        at org.netpreserve.jwarc.WarcReader.next(WarcReader.java:181)
+        at org.netpreserve.jwarc.tools.ExtractTool.main(ExtractTool.java:141)
+        at org.netpreserve.jwarc.tools.WarcTool.main(WarcTool.java:26)
+
+access the response record - failing
+java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+Exception in thread "main" org.netpreserve.jwarc.ParsingException: invalid WARC record at position 0: <-- HERE -->\xffffff87@\r\xffffffa1\xffffffca\xffffff84\x1d\xffffffca\x0f0\xffffffb4\xffffff93\xfffffff9\xffffffc5\xfffffff3\xffffff89\xffffffeb?\x1b\xffffff87,q\xffffffed\xffffffb3!s\xffffffc1\x08\xffffff83\\xffffffe0T\xffffffadG\xffffffdcd5\x02\xffffffbaQ... (offset 3734)
+        at org.netpreserve.jwarc.WarcParser.parse(WarcParser.java:356)
+        at org.netpreserve.jwarc.WarcReader.next(WarcReader.java:181)
+        at org.netpreserve.jwarc.tools.ExtractTool.main(ExtractTool.java:141)
+        at org.netpreserve.jwarc.tools.WarcTool.main(WarcTool.java:26)
+
+now let's do it the right way
+gzip -d data/testing.warc.gz
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="data/testing.warc data/testing.warc.gz"
+
+showing the records in the compressed warc
+java -jar jwarc.jar ls data/testing.warc.gz
+         0 warcinfo   -    -
+       518 request    GET  https://an.wikipedia.org/wiki/Escopete
+      1027 response   200  https://an.wikipedia.org/wiki/Escopete
+     18383 metadata   -    https://an.wikipedia.org/wiki/Escopete
+
+access the request record - works
+java -jar jwarc.jar extract data/testing.warc.gz 518 | head
+WARC/1.0
+Content-Length: 265
+Content-Type: application/http; msgtype=request
+WARC-Block-Digest: sha1:IE7NEN3QEJHUCYRRGVMHDDW3BEHFRQ6V
+WARC-Date: 2024-05-18T01:58:10Z
+WARC-IP-Address: 208.80.154.224
+WARC-Payload-Digest: sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ
+WARC-Record-ID: <urn:uuid:292f457d-203c-42f2-a1b5-69a4dabefd4f>
+WARC-Target-URI: https://an.wikipedia.org/wiki/Escopete
+WARC-Type: request
+
+access the response record - works
+java -jar jwarc.jar extract data/testing.warc.gz 1027 | head -n 20
+WARC/1.0
+Content-Length: 74581
+Content-Type: application/http; msgtype=response
+WARC-Block-Digest: sha1:35FTUGFVNWRVTZQGCWIX2MQA3LMYC7X7
+WARC-Concurrent-To: <urn:uuid:292f457d-203c-42f2-a1b5-69a4dabefd4f>
+WARC-Date: 2024-05-18T01:58:10Z
+WARC-Identified-Payload-Type: text/html
+WARC-IP-Address: 208.80.154.224
+WARC-Payload-Digest: sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU
+WARC-Record-ID: <urn:uuid:2aabeff2-67f5-4608-8466-e87c6296e2b6>
+WARC-Target-URI: https://an.wikipedia.org/wiki/Escopete
+WARC-Type: response
+WARC-Warcinfo-ID: <urn:uuid:668d88fc-4208-41fc-b327-1aa6cb783331>
+
+HTTP/1.1 200 OK
+date: Sat, 18 May 2024 01:58:10 GMT
+server: mw-web.eqiad.canary-bb67b76b8-jtwdb
+x-content-type-options: nosniff
+content-language: an
+origin-trial: AonOP4SwCrqpb0nhZbg554z9iJimP3DxUDB8V4yu9fyyepauGKD0NXqTknWi4gnuDfMG6hNb7TDUDTsl0mDw9gIAAABmeyJvcmlnaW4iOiJodHRwczovL3dpa2lwZWRpYS5vcmc6NDQzIiwiZmVhdHVyZSI6IlRvcExldmVsVHBjZCIsImV4cGlyeSI6MTczNTM0Mzk5OSwiaXNTdWJkb21haW4iOnRydWV9
+```
+
+</details>
+
+Make sure you compress WARCs the right way!
 
 ## Task 6: Use cdx_toolkit to query the full CDX index and download those captures from AWS S3
 
