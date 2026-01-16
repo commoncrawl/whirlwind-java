@@ -1,19 +1,6 @@
 build:
 	mvn clean package
 
-iterate: build
-	@echo iterating over all of the local warcs:
-	@echo
-	@echo warc:
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.gz"
-	@echo
-	@echo wet:
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.wet.gz"
-	@echo
-	@echo wat:
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/whirlwind.warc.wat.gz"
-	@echo
-
 # cdxj:
 # 	@echo "creating *.cdxj index files from the local warcs"
 # 	cdxj-indexer whirlwind.warc.gz > whirlwind.warc.cdxj
@@ -67,7 +54,7 @@ iterate: build
 #
 get_jwarc:
 	@echo "downloading JWarc JAR"
-	curl -fL -o jwarc-0.33.0.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar
+	curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar
 
 wreck_the_warc: build get_jwarc
 	@echo
