@@ -52,20 +52,12 @@ CC-MAIN-2024-22.warc.paths.gz:
 # 	@echo "warning! this might take 1-10 minutes"
 # 	python duck.py cloudfront
 #
-ensure_jwarc:
-	@echo "Ensuring JWarc JAR is present"
-	@if [ ! -f jwarc.jar ] ; then \
-	  echo "jwarc.jar not found, downloading..." ; \
-	  curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar ; \
-	else \
-	  echo "jwarc.jar found." ; \
-	fi
 
-get_jwarc:
+jwarc.jar:
 	@echo "downloading JWarc JAR"
 	curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar
 
-wreck_the_warc: build ensure_jwarc
+wreck_the_warc: build jwarc.jar
 	@echo
 	@echo we will break and then fix this warc
 	cp data/whirlwind.warc.gz data/testing.warc.gz
@@ -76,24 +68,24 @@ wreck_the_warc: build ensure_jwarc
 	gzip data/testing.warc
 	@echo
 	@echo showing the records in the compressed warc - note the offsets of request and response are
-	java -jar jwarc-0.33.0.jar ls data/testing.warc.gz
+	java -jar jwarc.jar ls data/testing.warc.gz
 	@echo
 	@echo access the request record - failing
-	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+	java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
 	@echo
 	@echo access the response record - failing
-	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+	java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
 	@echo
 	@echo "now let's do it the right way"
 	gzip -d data/testing.warc.gz
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="data/testing.warc data/testing.warc.gz"
 	@echo
 	@echo showing the records in the compressed warc - note the skewed offsets of request and response
-	java -jar jwarc-0.33.0.jar ls data/testing.warc.gz
+	java -jar jwarc.jar ls data/testing.warc.gz
 	@echo
 	@echo access the request record - works
-	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 518 | head
+	java -jar jwarc.jar extract data/testing.warc.gz 518 | head
 	@echo
 	@echo access the response record - works
-	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 1027 | head -n 20
+	java -jar jwarc.jar extract data/testing.warc.gz 1027 | head -n 20
 	@echo
