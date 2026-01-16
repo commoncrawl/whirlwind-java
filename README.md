@@ -414,11 +414,78 @@ Feel free to experiment more by looking at other part of the records, or extract
 
 ## Task 3: Index the WARC, WET, and WAT
 
-TBA
+The example WARC files we've been using are tiny and easy to work with. The real WARC files are around a gigabyte in size and contain about 30,000 webpages each. What's more, we have around 24 million of these files! To read all of them, we could iterate, but what if we wanted random access so we could read just one particular record? We do that with an index. 
+```mermaid
+flowchart LR
+    warc --> indexer --> cdxj & columnar
+    warc@{shape: cyl}
+    cdxj@{ shape: stored-data}
+    columnar@{ shape: stored-data}
+```
+
+
+We have two versions of the index: the CDX index and the columnar index. The CDX index is useful for looking up single pages, whereas the columnar index is better suited to analytical and bulk queries. We'll look at both in this tour, starting with the CDX index.
+
+### CDX(J) index
+
+The CDX index files are sorted plain-text files, with each line containing information about a single capture in the WARC. Technically, Common Crawl uses CDXJ index files since the information about each capture is formatted as JSON. We'll use CDX and CDXJ interchangeably in this tour for legacy reasons 💅
+
+We can create our own CDXJ index from the local WARCs by running:
+
+```make cdxj```
+
+This uses the JWARC library and, partially, a home-cooked code that we wrote to support WET and WAT records, to generate CDXJ index files for our WARC files by running the code below: 
+
+<details>
+  <summary>Click to view code</summary>
+
+```
+creating *.cdxj index files from the local warcs
+java -jar jwarc.jar cdxj data/whirlwind.warc.gz > whirlwind.warc.cdxj
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > whirlwind.warc.wet.cdxj
+mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > whirlwind.warc.wat.cdxj
+```
+
+</details>
+
+Now look at the `.cdxj` files with `cat whirlwind*.cdxj`. You'll see that each file has one entry in the index. The WARC only has the response record indexed, since by default cdxj-indexer guesses that you won't ever want to random-access the request or metadata. WET and WAT have the conversion and metadata records indexed (Common Crawl doesn't publish a WET or WAT index, just WARC).
+
+For each of these records, there's one text line in the index - yes, it's a flat file! It starts with a string like `org,wikipedia,an)/wiki/escopete 20240518015810`, followed by a JSON blob. The starting string is the primary key of the index. The first thing is a [SURT](http://crawler.archive.org/articles/user_manual/glossary.html#surt) (Sort-friendly URI Reordering Transform). The big integer is a date, in ISO-8601 format with the delimiters removed.
+
+What is the purpose of this funky format? It's done this way because these flat files (300 gigabytes total per crawl) can be sorted on the primary key using any out-of-core sort utility e.g. the standard Linux `sort`, or one of the Hadoop-based out-of-core sort functions.
+
+The JSON blob has enough information to cleanly isolate the raw data of a single record: it defines which WARC file the record is in, and the byte offset and length of the record within this file. We'll use that in the next section.
 
 ## Task 4: Use the CDXJ index to extract a subset of raw content from the local WARC, WET, and WAT 
 
-TBA
+Normally, compressed files aren't random access. However, the WARC files use a trick to make this possible, which is that every record needs to be separately compressed. The `gzip` compression utility supports this, but it's rarely used.
+
+To extract one record from a warc file, all you need to know is the filename and the offset into the file. If you're reading over the web, then it really helps to know the exact length of the record.
+
+Run:
+
+```make extract```
+
+to run a set of extractions from your local
+`whirlwind.*.gz` files with `JWARC` using the commands below:
+
+<details>
+  <summary>Click to view code</summary>
+
+```
+creating extraction.* from local warcs, the offset numbers are from the cdxj index
+java -jar jwarc.jar extract --payload data/whirlwind.warc.gz 1023 > extraction.html
+java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz 466 > extraction.txt
+java -jar jwarc.jar extract --payload data/whirlwind.warc.wat.gz 443 > extraction.json
+hint: python -m json.tool extraction.json
+```
+
+</details>
+
+The offset numbers in the Makefile are the same
+ones as in the index. Look at the three output files: `extraction.html`, `extraction.txt`, and `extraction.json` (pretty-print the json with `python -m json.tool extraction.json`). 
+
+Notice that we extracted HTML from the WARC, text from WET, and JSON from the WAT (as shown in the different file extensions). This is because the payload in each file type is formatted differently!
 
 ## Task 5: Wreck the WARC by compressing it wrong
 

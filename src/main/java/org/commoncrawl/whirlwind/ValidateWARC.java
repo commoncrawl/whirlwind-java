@@ -46,7 +46,7 @@ public class ValidateWARC {
 
 	}
 
-	public static int getWarcCompressionInformation(Path inputWarc) throws IllegalArgumentException {
+	public static int getWarcCompressionInformation(Path inputWarc) throws IOException {
 		final AtomicInteger memberCount = new AtomicInteger(0);
 
 		try (InputStream fis = Files.newInputStream(inputWarc);

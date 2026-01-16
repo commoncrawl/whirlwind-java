@@ -1,19 +1,19 @@
 build:
 	mvn clean package
 
-# cdxj:
-# 	@echo "creating *.cdxj index files from the local warcs"
-# 	cdxj-indexer whirlwind.warc.gz > whirlwind.warc.cdxj
-# 	cdxj-indexer --records conversion whirlwind.warc.wet.gz > whirlwind.warc.wet.cdxj
-# 	cdxj-indexer whirlwind.warc.wat.gz > whirlwind.warc.wat.cdxj
+cdxj: build ensure_jwarc
+	@echo "creating *.cdxj index files from the local warcs"
+	java -jar jwarc.jar cdxj data/whirlwind.warc.gz > data/whirlwind.warc.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > data/whirlwind.warc.wet.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > data/whirlwind.warc.wat.cdxj
 
-# extract:
-# 	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
-# 	warcio extract --payload whirlwind.warc.gz 1023 > extraction.html
-# 	warcio extract --payload whirlwind.warc.wet.gz 466 > extraction.txt
-# 	warcio extract --payload whirlwind.warc.wat.gz 443 > extraction.json
-# 	@echo "hint: python -m json.tool extraction.json"
-#
+extract:
+	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
+	java -jar jwarc.jar extract --payload data/whirlwind.warc.gz 1023 > extraction.html
+	java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz 466 > extraction.txt
+	java -jar jwarc.jar extract --payload data/whirlwind.warc.wat.gz 443 > extraction.json
+	@echo "hint: python -m json.tool extraction.json"
+
 # cdx_toolkit:
 # 	@echo demonstrate that we have this entry in the index
 # 	cdxt --crawl CC-MAIN-2024-22 --from 20240518015810 --to 20240518015810 iter an.wikipedia.org/wiki/Escopete
@@ -31,15 +31,15 @@ build:
 # 	python ./warcio-iterator.py TEST-000000.extracted.warc.gz
 # 	@echo
 #
-# download_collinfo:
-# 	@echo "downloading collinfo.json so we can find out the crawl name"
-# 	curl -O https://index.commoncrawl.org/collinfo.json
-#
-# CC-MAIN-2024-22.warc.paths.gz:
-# 	@echo "downloading the list from s3, requires s3 auth even though it is free"
-# 	@echo "note that this file should be in the repo"
-# 	 aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > CC-MAIN-2024-22.warc.paths.gz
-#
+download_collinfo:
+	@echo "downloading collinfo.json so we can find out the crawl name"
+	curl -o data/collinfo.json https://index.commoncrawl.org/collinfo.json
+
+CC-MAIN-2024-22.warc.paths.gz:
+	@echo "downloading the list from s3, requires s3 auth even though it is free"
+	@echo "note that this file should be in the repo"
+	 aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > data/CC-MAIN-2024-22.warc.paths.gz
+
 # duck_local_files:
 # 	@echo "warning! 300 gigabyte download"
 # 	python duck.py local_files
@@ -52,11 +52,12 @@ build:
 # 	@echo "warning! this might take 1-10 minutes"
 # 	python duck.py cloudfront
 #
-get_jwarc:
+
+jwarc.jar:
 	@echo "downloading JWarc JAR"
 	curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar
 
-wreck_the_warc: build get_jwarc
+wreck_the_warc: build jwarc.jar
 	@echo
 	@echo we will break and then fix this warc
 	cp data/whirlwind.warc.gz data/testing.warc.gz
@@ -67,24 +68,24 @@ wreck_the_warc: build get_jwarc
 	gzip data/testing.warc
 	@echo
 	@echo showing the records in the compressed warc - note the offsets of request and response are
-	java -jar jwarc-0.33.0.jar ls data/testing.warc.gz
+	java -jar jwarc.jar ls data/testing.warc.gz
 	@echo
 	@echo access the request record - failing
-	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+	java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
 	@echo
 	@echo access the response record - failing
-	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+	java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
 	@echo
 	@echo "now let's do it the right way"
 	gzip -d data/testing.warc.gz
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="data/testing.warc data/testing.warc.gz"
 	@echo
 	@echo showing the records in the compressed warc - note the skewed offsets of request and response
-	java -jar jwarc-0.33.0.jar ls data/testing.warc.gz
+	java -jar jwarc.jar ls data/testing.warc.gz
 	@echo
 	@echo access the request record - works
-	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 518 | head
+	java -jar jwarc.jar extract data/testing.warc.gz 518 | head
 	@echo
 	@echo access the response record - works
-	java -jar jwarc-0.33.0.jar extract data/testing.warc.gz 1027 | head -n 20
+	java -jar jwarc.jar extract data/testing.warc.gz 1027 | head -n 20
 	@echo
