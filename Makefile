@@ -42,7 +42,7 @@ CC-MAIN-2024-22.warc.paths.gz:
 
 duck_ccf_local_files: build
 	@echo "warning! only works on Common Crawl Foundation's development machine"
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args"ccf_local_files"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args="ccf_local_files"
 
 duck_cloudfront: build
 	@echo "warning! this might take 1-10 minutes"
