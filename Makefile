@@ -1,36 +1,36 @@
 build:
 	mvn clean package
 
-cdxj: build ensure_jwarc
+cdxj: build jwarc.jar
 	@echo "creating *.cdxj index files from the local warcs"
 	java -jar jwarc.jar cdxj data/whirlwind.warc.gz > data/whirlwind.warc.cdxj
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > data/whirlwind.warc.wet.cdxj
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > data/whirlwind.warc.wat.cdxj
 
-extract:
+extract: jwarc.jar
 	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
 	java -jar jwarc.jar extract --payload data/whirlwind.warc.gz 1023 > extraction.html
 	java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz 466 > extraction.txt
 	java -jar jwarc.jar extract --payload data/whirlwind.warc.wat.gz 443 > extraction.json
 	@echo "hint: python -m json.tool extraction.json"
 
-# cdx_toolkit:
-# 	@echo demonstrate that we have this entry in the index
-# 	cdxt --crawl CC-MAIN-2024-22 --from 20240518015810 --to 20240518015810 iter an.wikipedia.org/wiki/Escopete
-# 	@echo
-# 	@echo cleanup previous work
-# 	rm -f TEST-000000.extracted.warc.gz
-# 	@echo retrieve the content from the commoncrawl s3 bucket
-# 	cdxt --crawl CC-MAIN-2024-22 --from 20240518015810 --to 20240518015810 warc an.wikipedia.org/wiki/Escopete
-# 	@echo
-# 	@echo index this new warc
-# 	cdxj-indexer TEST-000000.extracted.warc.gz  > TEST-000000.extracted.warc.cdxj
-# 	cat TEST-000000.extracted.warc.cdxj
-# 	@echo
-# 	@echo iterate this new warc
-# 	python ./warcio-iterator.py TEST-000000.extracted.warc.gz
-# 	@echo
-#
+cdx_toolkit: jwarc.jar
+	@echo demonstrate that we have this entry in the index
+	curl 'https://index.commoncrawl.org/CC-MAIN-2024-22-index?url=an.wikipedia.org/wiki/Escopete&output=json&from=20240518015810&to=20240518015810'
+	@echo
+	@echo cleanup previous work
+	rm -f TEST-000000.extracted.warc.gz
+	@echo retrieve the content from the commoncrawl data server
+	curl --request GET --url 'https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz' --header 'Range: bytes=80610731-80628153' > TEST-000000.extracted.warc.gz
+	@echo
+	@echo index this new warc
+	java -jar jwarc.jar cdxj TEST-000000.extracted.warc.gz  > TEST-000000.extracted.warc.cdxj
+	cat TEST-000000.extracted.warc.cdxj
+	@echo
+	@echo iterate this new warc
+	java -jar jwarc.jar ls TEST-000000.extracted.warc.gz
+	@echo
+
 download_collinfo:
 	@echo "downloading collinfo.json so we can find out the crawl name"
 	curl -o data/collinfo.json https://index.commoncrawl.org/collinfo.json
@@ -38,20 +38,15 @@ download_collinfo:
 CC-MAIN-2024-22.warc.paths.gz:
 	@echo "downloading the list from s3, requires s3 auth even though it is free"
 	@echo "note that this file should be in the repo"
-	 aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > data/CC-MAIN-2024-22.warc.paths.gz
+	aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > data/CC-MAIN-2024-22.warc.paths.gz
 
-# duck_local_files:
-# 	@echo "warning! 300 gigabyte download"
-# 	python duck.py local_files
-#
-# duck_ccf_local_files:
-# 	@echo "warning! only works on Common Crawl Foundadtion's development machine"
-# 	python duck.py ccf_local_files
-#
-# duck_cloudfront:
-# 	@echo "warning! this might take 1-10 minutes"
-# 	python duck.py cloudfront
-#
+duck_ccf_local_files: build
+	@echo "warning! only works on Common Crawl Foundadtion's development machine"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args"ccf_local_files"
+
+duck_cloudfront: build
+	@echo "warning! this might take 1-10 minutes"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args"cloudfront"
 
 jwarc.jar:
 	@echo "downloading JWarc JAR"

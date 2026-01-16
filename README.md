@@ -593,9 +593,76 @@ origin-trial: AonOP4SwCrqpb0nhZbg554z9iJimP3DxUDB8V4yu9fyyepauGKD0NXqTknWi4gnuDf
 
 Make sure you compress WARCs the right way!
 
-## Task 6: Use cdx_toolkit to query the full CDX index and download those captures from AWS S3
+## Task 6: Query the full CDX index and download those captures from AWS S3
 
-TBA 
+Some of our users only want to download a small subset of the crawl. They want to run queries against an index, either the CDX index we just talked about, or in the columnar index, which we'll talk about later.
+
+The CDX server API is documented [here](https://github.com/webrecorder/pywb/wiki/CDX-Server-API#api-reference) and can be accessed through a HTTP API. 
+
+Right now there is no specific tool in Java for query the CDX index, nevertheless, we do have a very useful Python tool for working with the CDX index: [cdx_toolkit](https://github.com/cocrawler/cdx_toolkit). Please refer to the [Python Whirlwind Tour](https://github.com/commoncrawl/whirlwind-python) for more details. 
+
+In this task we will achieve the same results using direct HTTP API calls and JWARC. 
+
+Run
+
+```make query_cdx```
+
+The output looks like this:
+
+<details>
+  <summary>Click to view output</summary>
+
+```
+demonstrate that we have this entry in the index
+curl https://index.commoncrawl.org/CC-MAIN-2024-22-index?url=an.wikipedia.org/wiki/Escopete&output=json&from=20240518015810&to=20240518015810
+
+{"urlkey": "org,wikipedia,an)/wiki/escopete", "timestamp": "20240518015810", "url": "https://an.wikipedia.org/wiki/Escopete", "mime": "text/html", "mime-detected": "text/html", "status": "200", "digest": "RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU", "length": "17423", "offset": "80610731", "filename": "crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz", "languages": "spa", "encoding": "UTF-8"}
+
+cleanup previous work
+rm -f TEST-000000.extracted.warc.gz
+retrieve the content from the commoncrawl s3 bucket (offset: 80628153 = 80610731 + 17423 - 1)
+curl --request GET \
+  --url https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz \
+  --header 'Range: bytes=80610731-80628153' > TEST-000000.extracted.warc.gz
+
+index this new warc
+java -jar jwarc.jar cdxj TEST-000000.extracted.warc.gz  > TEST-000000.extracted.warc.cdxj
+cat TEST-000000.extracted.warc.cdxj
+org,wikipedia,an)/wiki/escopete 20240518015810 {"url": "https://an.wikipedia.org/wiki/Escopete", "mime": "text/html", "status": "200", "digest": "sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU", "length": "17455", "offset": "406", "filename": "TEST-000000.extracted.warc.gz"}
+
+iterate this new warc
+java -jar jwarc.jar ls TEST-000000.extracted.warc.gz
+ 0 response   200  https://an.wikipedia.org/wiki/Escopete
+```
+
+</details>
+
+There's a lot going on here so let's unpack it a little.
+
+#### Check that the crawl has a record for the page we are interested in
+
+We check for capture results querying the index.commoncrawl.org with GET parameters, specifying the crawl (`CC-MAIN-2024-22-index`), the exact URL `an.wikipedia.org/wiki/Escopete` and the timestamp range `from=20240518015810` and `to=20240518015810`. 
+The result of this tells us that the crawl successfully fetched this page at timestamp `20240518015810`. 
+* Captures are named by the surtkey and the time.
+
+[//]: # (* If you need to search across all crawls,  of `--crawl CC-MAIN-2024-22`, you could pass `--cc` to search across all crawls.)
+[//]: # (Here I'm tempted to mention that you should use the columnar index for this kind of operations, however cdx_toolkit iterate over all crawls when called with -cc, if I'm not wrong)
+* You can use the parameter `limit=<N>` to limit the number of results returned - in this case because we have restricted the timestamp range to a single value, we only expect one result.
+* URLs may be specified with wildcards to return even more results: `"an.wikipedia.org/wiki/Escop*"` matches `an.wikipedia.org/wiki/Escopulión` and `an.wikipedia.org/wiki/Escopete`.
+
+#### Retrieve the fetched content as WARC
+
+Next, we make another HTTP call to retrieve the content and save it locally as a new WARC file, again specifying the exact URL, crawl identifier, and timestamp range. 
+This creates the WARC file `TEST-000000.extracted.warc.gz` 
+
+[//]: # (Here there is no warcinfo when getting from data.commoncrawl.org, right?)
+[//]: # (which contains a `warcinfo` record explaining what the WARC is, followed by the `response` record we requested. )
+* If you check the cURL command, you'll find that it is using the offset and length of the WARC record (as returned by the CDX index query) to make an HTTP byte range request to `data.commoncrawl.org` that isolates and returns just the single record we want from the full file. It only downloads the response WARC record because our CDX index only has the response records indexed.
+* Limit, timestamp, and crawl index parameters, as well as URL wildcards.
+
+### Indexing the WARC and viewing its contents
+
+Finally, we run `jwarc cdxj` that process the WARC to make a CDXJ index of it as in Task 3, and then list the records using `jwarc ls` as in Task 2.
 
 ## Task 7: Find the right part of the columnar index 
 
@@ -643,12 +710,12 @@ TBA
 
 1. Use the DuckDb techniques from [Task 8](#task-8-query-using-the-columnar-index--duckdb-from-outside-aws) and the [Index Server](https://index.commoncrawl.org) to find a new webpage in the archives. 
 2. Note its url, warc, and timestamp. 
-3. Now open up the Makefile from [Task 6](#task-6-use-cdx_toolkit-to-query-the-full-cdx-index-and-download-those-captures-from-aws-s3) and look at the actions from the cdx_toolkit section.
+3. Now open up the Makefile from [Task 6](#task-6-query-the-full-cdx-index-and-download-those-captures-from-aws-s3) and look at the actions from the cdx_toolkit section.
 4. Repeat the cdx_toolkit steps, but for the page and date range you found above.
 
 ## Congratulations!
 
-You have completed the Whirlwind Tour of Common Crawl's Datasets using Python! You should now understand different filetypes we have in our corpus and how to interact with Common Crawl's datasets using Python. To see what other people have done with our data, see the  [Examples page](https://commoncrawl.org/examples) on our website. Why not join our Discord through the Community tab?
+You have completed the Whirlwind Tour of Common Crawl's Datasets using Java! You should now understand different filetypes we have in our corpus and how to interact with Common Crawl's datasets using Java. To see what other people have done with our data, see the  [Examples page](https://commoncrawl.org/examples) on our website. Why not join our Discord through the Community tab?
 
 
 ## Other datasets
