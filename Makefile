@@ -3,9 +3,9 @@ build:
 
 cdxj: build ensure_jwarc
 	@echo "creating *.cdxj index files from the local warcs"
-	java -jar jwarc.jar cdxj data/whirlwind.warc.gz > whirlwind.warc.cdxj
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > whirlwind.warc.wet.cdxj
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > whirlwind.warc.wat.cdxj
+	java -jar jwarc.jar cdxj data/whirlwind.warc.gz > data/whirlwind.warc.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > data/whirlwind.warc.wet.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > data/whirlwind.warc.wat.cdxj
 
 extract:
 	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
@@ -49,39 +49,39 @@ duck_cloudfront: build
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args"cloudfront"
 
 
-ensure_jwarc:
-	@echo "Ensuring JWarc JAR is present"
-	@if [ ! -f jwarc.jar ] ; then \
-	  echo "jwarc.jar not found, downloading..." ; \
-	  curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar ; \
-	else \
-	  echo "jwarc.jar found." ; \
-	fi
-
-get_jwarc:
+jwarc.jar:
 	@echo "downloading JWarc JAR"
 	curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar
 
-wreck_the_warc: build ensure_jwarc
+wreck_the_warc: build jwarc.jar
 	@echo
 	@echo we will break and then fix this warc
 	cp data/whirlwind.warc.gz data/testing.warc.gz
 	rm -f data/testing.warc
 	gzip -d data/testing.warc.gz  # windows gunzip no work-a
 	@echo
-	@echo iterate over this uncompressed warc: works
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc"
-	@echo
 	@echo compress it the wrong way
 	gzip data/testing.warc
 	@echo
-	@echo iterating over this compressed warc fails
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz" || /usr/bin/true
+	@echo showing the records in the compressed warc - note the offsets of request and response are
+	java -jar jwarc.jar ls data/testing.warc.gz
+	@echo
+	@echo access the request record - failing
+	java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
+	@echo
+	@echo access the response record - failing
+	java -jar jwarc.jar extract data/testing.warc.gz 3734 || /usr/bin/true
 	@echo
 	@echo "now let's do it the right way"
 	gzip -d data/testing.warc.gz
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.RecompressWARC -Dexec.args="data/testing.warc data/testing.warc.gz"
 	@echo
-	@echo and now iterating works
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.ReadWARC -Dexec.args="data/testing.warc.gz"
+	@echo showing the records in the compressed warc - note the skewed offsets of request and response
+	java -jar jwarc.jar ls data/testing.warc.gz
+	@echo
+	@echo access the request record - works
+	java -jar jwarc.jar extract data/testing.warc.gz 518 | head
+	@echo
+	@echo access the response record - works
+	java -jar jwarc.jar extract data/testing.warc.gz 1027 | head -n 20
 	@echo
