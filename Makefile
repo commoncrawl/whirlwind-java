@@ -3,9 +3,9 @@ build:
 
 cdxj: build ensure_jwarc
 	@echo "creating *.cdxj index files from the local warcs"
-	java -jar jwarc.jar cdxj data/whirlwind.warc.gz > whirlwind.warc.cdxj
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > whirlwind.warc.wet.cdxj
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > whirlwind.warc.wat.cdxj
+	java -jar jwarc.jar cdxj data/whirlwind.warc.gz > data/whirlwind.warc.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > data/whirlwind.warc.wet.cdxj
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > data/whirlwind.warc.wat.cdxj
 
 extract:
 	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
@@ -33,12 +33,12 @@ extract:
 #
 download_collinfo:
 	@echo "downloading collinfo.json so we can find out the crawl name"
-	curl -O https://index.commoncrawl.org/collinfo.json
+	curl -o data/collinfo.json https://index.commoncrawl.org/collinfo.json
 
 CC-MAIN-2024-22.warc.paths.gz:
 	@echo "downloading the list from s3, requires s3 auth even though it is free"
 	@echo "note that this file should be in the repo"
-	 aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > CC-MAIN-2024-22.warc.paths.gz
+	 aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > data/CC-MAIN-2024-22.warc.paths.gz
 
 # duck_local_files:
 # 	@echo "warning! 300 gigabyte download"
