@@ -1,20 +1,20 @@
 build:
 	mvn clean package
 
-cdxj: build ensure_jwarc
+cdxj: build jwarc.jar
 	@echo "creating *.cdxj index files from the local warcs"
 	java -jar jwarc.jar cdxj data/whirlwind.warc.gz > data/whirlwind.warc.cdxj
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > data/whirlwind.warc.wet.cdxj
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > data/whirlwind.warc.wat.cdxj
 
-extract:
+extract: jwarc.jar
 	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
 	java -jar jwarc.jar extract --payload data/whirlwind.warc.gz 1023 > extraction.html
 	java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz 466 > extraction.txt
 	java -jar jwarc.jar extract --payload data/whirlwind.warc.wat.gz 443 > extraction.json
 	@echo "hint: python -m json.tool extraction.json"
 
-cdx_toolkit:
+cdx_toolkit: jwarc.jar
 	@echo demonstrate that we have this entry in the index
 	curl 'https://index.commoncrawl.org/CC-MAIN-2024-22-index?url=an.wikipedia.org/wiki/Escopete&output=json&from=20240518015810&to=20240518015810'
 	@echo
@@ -33,7 +33,7 @@ cdx_toolkit:
 
 download_collinfo:
 	@echo "downloading collinfo.json so we can find out the crawl name"
-	curl -O https://index.commoncrawl.org/collinfo.json
+	curl -o data/collinfo.json https://index.commoncrawl.org/collinfo.json
 
 CC-MAIN-2024-22.warc.paths.gz:
 	@echo "downloading the list from s3, requires s3 auth even though it is free"
@@ -47,7 +47,6 @@ duck_ccf_local_files: build
 duck_cloudfront: build
 	@echo "warning! this might take 1-10 minutes"
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args"cloudfront"
-
 
 jwarc.jar:
 	@echo "downloading JWarc JAR"
