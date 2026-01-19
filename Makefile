@@ -19,16 +19,16 @@ cdx_toolkit: jwarc.jar
 	curl 'https://index.commoncrawl.org/CC-MAIN-2024-22-index?url=an.wikipedia.org/wiki/Escopete&output=json&from=20240518015810&to=20240518015810'
 	@echo
 	@echo cleanup previous work
-	rm -f TEST-000000.extracted.warc.gz
+	rm -f data/TEST-000000.extracted.warc.gz
 	@echo retrieve the content from the commoncrawl data server
-	curl --request GET --url 'https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz' --header 'Range: bytes=80610731-80628153' > TEST-000000.extracted.warc.gz
+	curl --request GET --url 'https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz' --header 'Range: bytes=80610731-80628153' > data/TEST-000000.extracted.warc.gz
 	@echo
 	@echo index this new warc
-	java -jar jwarc.jar cdxj TEST-000000.extracted.warc.gz  > TEST-000000.extracted.warc.cdxj
-	cat TEST-000000.extracted.warc.cdxj
+	java -jar jwarc.jar cdxj data/TEST-000000.extracted.warc.gz  > data/TEST-000000.extracted.warc.cdxj
+	cat data/TEST-000000.extracted.warc.cdxj
 	@echo
 	@echo iterate this new warc
-	java -jar jwarc.jar ls TEST-000000.extracted.warc.gz
+	java -jar jwarc.jar ls data/TEST-000000.extracted.warc.gz
 	@echo
 
 download_collinfo:
