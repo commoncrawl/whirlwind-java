@@ -796,7 +796,8 @@ If you want to run many of these queries, and you have a lot of disk space, you'
 aws s3 sync s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ .'
 ```
 
-(**Bonus bonus:** If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```.)
+> [!IMPORTANT]
+> If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```
 
 All of these scripts run the same SQL query and should return the same record (written as a parquet file).
 
