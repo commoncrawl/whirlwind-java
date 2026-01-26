@@ -796,10 +796,24 @@ If you want to run many of these queries, and you have a lot of disk space, you'
 aws s3 sync s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ .'
 ```
 
-or (if you don't have access through the AWS CLI): 
+or (if you don't have access through the AWS CLI):
 
 ```shell
-TBA - add the download instructions 
+mkdir -p cc-main-2024-22
+cd cc-main-2024-22
+
+wget https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-22/cc-index-table.paths.gz
+gunzip cc-index-table.paths.gz
+
+grep 'subset=warc' cc-index-table.paths | \
+  awk '{print "https://data.commoncrawl.org/" $1, $1}' | \
+  xargs -n 2 -P 10 sh -c '
+    echo "Downloading: $2"
+    mkdir -p "$(dirname "$2")" &&
+    wget -O "$2" "$1"
+  ' _
+
+cd -
 ```
 
 then you can run `make duck_local_files LOCAL_DIR=/path/to/the/downloaded/data` to run the same query as above, but this time using your local copy of the index files.
