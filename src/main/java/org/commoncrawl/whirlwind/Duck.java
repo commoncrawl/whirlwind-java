@@ -264,7 +264,7 @@ public class Duck {
 			// Count total records
 			out.printf("Total records for crawl: %s%n", crawl);
 			try (ResultSet rs = executeWithRetry(stmt,
-					"SELECT COUNT(*) as cnt FROM ccindex " + "WHERE subset = 'warc' AND crawl = '"+crawl+"'")) {
+					"SELECT COUNT(*) as cnt FROM ccindex " + "WHERE subset = 'warc' AND crawl = '" + crawl + "'")) {
 				if (rs.next()) {
 					out.println(rs.getLong("cnt"));
 				}
