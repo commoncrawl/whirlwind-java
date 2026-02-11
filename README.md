@@ -700,11 +700,106 @@ The date of our test record is 20240518015810, which is
 
 ## Task 8: Query using the columnar index + DuckDB from outside AWS
 
-TBA
+A single crawl columnar index is around 300 gigabytes. If you don't have a lot of disk space, but you do have a lot of time, you can directly access the index stored on AWS S3. We're going to do just that, and then use [DuckDB](https://duckdb.org) to make an SQL query against the index to find our webpage. We'll be running the following query:
+
+```sql
+    SELECT
+      *
+    FROM ccindex
+    WHERE subset = 'warc'
+      AND crawl = 'CC-MAIN-2024-22'
+      AND url_host_tld = 'org' -- help the query optimizer
+      AND url_host_registered_domain = 'wikipedia.org' -- ditto
+      AND url = 'https://an.wikipedia.org/wiki/Escopete'
+    ;
+```
+
+Run
+
+```make duck_cloudfront```
+
+On a machine with a 1 gigabit network connection and many cores, this should take about one minute total, and uses 8 cores. The output should look like:
+
+<details>
+  <summary>Click to view output</summary>
+
+```
+Using algorithm: cloudfront
+Total records for crawl: CC-MAIN-2024-22
+100% ▕████████████████████████████████████████████████████████████▏ 
+2709877975
+
+Our one row:
+100% ▕████████████████████████████████████████████████████████████▏ 
+url_surtkey | url | url_host_name | url_host_tld | url_host_2nd_last_part | url_host_3rd_last_part | url_host_4th_last_part | url_host_5th_last_part | url_host_registry_suffix | url_host_registered_domain | url_host_private_suffix | url_host_private_domain | url_host_name_reversed | url_protocol | url_port | url_path | url_query | fetch_time | fetch_status | fetch_redirect | content_digest | content_mime_type | content_mime_detected | content_charset | content_languages | content_truncated | warc_filename | warc_record_offset | warc_record_length | warc_segment | crawl | subset
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+org,wikipedia,an)/wiki/escopete | https://an.wikipedia.org/wiki/Escopete | an.wikipedia.org | org | wikipedia | an | NULL | NULL | org | wikipedia.org | org | wikipedia.org | org.wikipedia.an | https | NULL | /wiki/Escopete | NULL | 2024-05-18T01:58:10Z | 200 | NULL | RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU | text/html | text/html | UTF-8 | spa | NULL | crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz | 80610731 | 17423 | 1715971057216.39 | CC-MAIN-2024-22 | warc
+
+Writing our one row to a local parquet file, whirlwind.parquet
+100% ▕████████████████████████████████████████████████████████████▏ 
+Total records for local whirlwind.parquet should be 1:
+1
+
+Our one row, locally:
+url_surtkey | url | url_host_name | url_host_tld | url_host_2nd_last_part | url_host_3rd_last_part | url_host_4th_last_part | url_host_5th_last_part | url_host_registry_suffix | url_host_registered_domain | url_host_private_suffix | url_host_private_domain | url_host_name_reversed | url_protocol | url_port | url_path | url_query | fetch_time | fetch_status | fetch_redirect | content_digest | content_mime_type | content_mime_detected | content_charset | content_languages | content_truncated | warc_filename | warc_record_offset | warc_record_length | warc_segment | crawl | subset
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+org,wikipedia,an)/wiki/escopete | https://an.wikipedia.org/wiki/Escopete | an.wikipedia.org | org | wikipedia | an | NULL | NULL | org | wikipedia.org | org | wikipedia.org | org.wikipedia.an | https | NULL | /wiki/Escopete | NULL | 2024-05-18T01:58:10Z | 200 | NULL | RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU | text/html | text/html | UTF-8 | spa | NULL | crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz | 80610731 | 17423 | 1715971057216.39 | CC-MAIN-2024-22 | warc
+
+Complete row:
+  url_surtkey org,wikipedia,an)/wiki/escopete
+  url https://an.wikipedia.org/wiki/Escopete
+  url_host_name an.wikipedia.org
+  url_host_tld org
+  url_host_2nd_last_part wikipedia
+  url_host_3rd_last_part an
+  url_host_4th_last_part null
+  url_host_5th_last_part null
+  url_host_registry_suffix org
+  url_host_registered_domain wikipedia.org
+  url_host_private_suffix org
+  url_host_private_domain wikipedia.org
+  url_host_name_reversed org.wikipedia.an
+  url_protocol https
+  url_port null
+  url_path /wiki/Escopete
+  url_query null
+  fetch_time 2024-05-18T01:58:10Z
+  fetch_status 200
+  fetch_redirect null
+  content_digest RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU
+  content_mime_type text/html
+  content_mime_detected text/html
+  content_charset UTF-8
+  content_languages spa
+  content_truncated null
+  warc_filename crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz
+  warc_record_offset 80610731
+  warc_record_length 17423
+  warc_segment 1715971057216.39
+  crawl CC-MAIN-2024-22
+  subset warc
+
+Equivalent to CDXJ:
+org,wikipedia,an)/wiki/escopete 20240518015810 {"url":"https://an.wikipedia.org/wiki/Escopete","mime":"text/html","status":"200","digest":"sha1:RY7PLBUFQNI2FFV5FTUQK72W6SNPXLQU","length":"17423","offset":"80610731","filename":"crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz"}
+```
+</details>
+
+The above command runs code in `Duck.java`, which accesses the relevant part of the index for our crawl (CC-MAIN-2024-22) and then counts the number of records in that crawl (2709877975!). The code runs the SQL query we saw before which should match the single response record we want. 
+
+The program then writes that one record into a local Parquet file, does a second query that returns that one record, and shows the full contents of the record. We can see that the complete row contains many columns containing different information associated with our record. Finally, it converts the row to the CDXJ format we saw before. 
 
 ### Bonus: download a full crawl index and query with DuckDB
 
-TBA
+If you want to run many of these queries, and you have a lot of disk space, you'll want to download the 300 gigabyte index and query it repeatedly. Run
+
+```shell
+aws s3 sync s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ .'
+```
+
+> [!IMPORTANT]
+> If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```
+
+All of these scripts run the same SQL query and should return the same record (written as a parquet file).
 
 ## Bonus 2: combine some steps
 

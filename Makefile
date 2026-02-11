@@ -9,26 +9,26 @@ cdxj: build jwarc.jar
 
 extract: jwarc.jar
 	@echo "creating extraction.* from local warcs, the offset numbers are from the cdxj index"
-	java -jar jwarc.jar extract --payload data/whirlwind.warc.gz 1023 > extraction.html
-	java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz 466 > extraction.txt
-	java -jar jwarc.jar extract --payload data/whirlwind.warc.wat.gz 443 > extraction.json
-	@echo "hint: python -m json.tool extraction.json"
+	java -jar jwarc.jar extract --payload data/whirlwind.warc.gz 1023 > data/extraction.html
+	java -jar jwarc.jar extract --payload data/whirlwind.warc.wet.gz 466 > data/extraction.txt
+	java -jar jwarc.jar extract --payload data/whirlwind.warc.wat.gz 443 > data/extraction.json
+	@echo "hint: python -m json.tool data/extraction.json"
 
 cdx_toolkit: jwarc.jar
 	@echo demonstrate that we have this entry in the index
 	curl 'https://index.commoncrawl.org/CC-MAIN-2024-22-index?url=an.wikipedia.org/wiki/Escopete&output=json&from=20240518015810&to=20240518015810'
 	@echo
 	@echo cleanup previous work
-	rm -f TEST-000000.extracted.warc.gz
+	rm -f data/TEST-000000.extracted.warc.gz
 	@echo retrieve the content from the commoncrawl data server
-	curl --request GET --url 'https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz' --header 'Range: bytes=80610731-80628153' > TEST-000000.extracted.warc.gz
+	curl --request GET --url 'https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-22/segments/1715971057216.39/warc/CC-MAIN-20240517233122-20240518023122-00000.warc.gz' --header 'Range: bytes=80610731-80628153' > data/TEST-000000.extracted.warc.gz
 	@echo
 	@echo index this new warc
-	java -jar jwarc.jar cdxj TEST-000000.extracted.warc.gz  > TEST-000000.extracted.warc.cdxj
-	cat TEST-000000.extracted.warc.cdxj
+	java -jar jwarc.jar cdxj data/TEST-000000.extracted.warc.gz  > data/TEST-000000.extracted.warc.cdxj
+	cat data/TEST-000000.extracted.warc.cdxj
 	@echo
 	@echo iterate this new warc
-	java -jar jwarc.jar ls TEST-000000.extracted.warc.gz
+	java -jar jwarc.jar ls data/TEST-000000.extracted.warc.gz
 	@echo
 
 download_collinfo:
@@ -41,12 +41,12 @@ CC-MAIN-2024-22.warc.paths.gz:
 	aws s3 ls s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ | awk '{print $$4}' | gzip -9 > data/CC-MAIN-2024-22.warc.paths.gz
 
 duck_ccf_local_files: build
-	@echo "warning! only works on Common Crawl Foundadtion's development machine"
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args"ccf_local_files"
+	@echo "warning! only works on Common Crawl Foundation's development machine"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args="ccf_local_files"
 
 duck_cloudfront: build
 	@echo "warning! this might take 1-10 minutes"
-	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args"cloudfront"
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args="cloudfront"
 
 jwarc.jar:
 	@echo "downloading JWarc JAR"

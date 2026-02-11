@@ -24,6 +24,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -124,7 +125,7 @@ public class Duck {
 		case CLOUDFRONT: {
 			String externalPrefix = String
 					.format("https://data.commoncrawl.org/cc-index/table/cc-main/warc/crawl=%s/subset=warc/", crawl);
-			String pathsFile = crawl + ".warc.paths.gz";
+			String pathsFile = Paths.get("data", crawl + ".warc.paths.gz").toString();
 
 			List<String> files = new ArrayList<>();
 			try (GZIPInputStream gzis = new GZIPInputStream(new FileInputStream(pathsFile));
