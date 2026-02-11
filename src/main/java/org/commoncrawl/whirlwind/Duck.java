@@ -154,7 +154,7 @@ public class Duck {
 			System.exit(1);
 		}
 
-		List<String> files = Files.list(indexPath).filter(p -> p.toString().endsWith(".parquet")).map(Path::toString)
+		List<String> files = Files.walk(indexPath).map(Path::toString).filter(string -> string.endsWith(".parquet"))
 				.collect(Collectors.toList());
 
 		if (files.isEmpty()) {
