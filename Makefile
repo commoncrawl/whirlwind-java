@@ -45,9 +45,9 @@ duck_ccf_local_files: build
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args="ccf_local_files"
 
 duck_local_files: build
-	ifndef LOCAL_DIR
-		$(error LOCAL_DIR is required. Usage: make duck_local_files LOCAL_DIR=/path/to/data)
-	endif
+ifndef LOCAL_DIR
+	$(error LOCAL_DIR is required. Usage: make duck_local_files LOCAL_DIR=/path/to/data)
+endif
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args="local_files $(LOCAL_DIR)"
 
 duck_cloudfront: build
