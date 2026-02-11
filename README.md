@@ -794,7 +794,8 @@ If you want to run many of these queries, and you have a lot of disk space, you'
 All of these scripts run the same SQL query and should return the same record (written as a parquet file).
 
 ```shell
-aws s3 sync s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ .'
+mkdir -p 'crawl=CC-MAIN-2024-22/subset=warc'
+aws s3 sync s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ 'crawl=CC-MAIN-2024-22/subset=warc'
 ```
 
 > [!IMPORTANT]
@@ -805,8 +806,8 @@ aws s3 sync s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/s
 If, by any other chance, you don't have access through the AWS CLI:
 
 ```shell
-mkdir -p cc-main-2024-22
-cd cc-main-2024-22
+mkdir -p 'crawl=CC-MAIN-2024-22/subset=warc'
+cd 'crawl=CC-MAIN-2024-22/subset=warc'
 
 wget https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-22/cc-index-table.paths.gz
 gunzip cc-index-table.paths.gz
@@ -819,6 +820,7 @@ grep 'subset=warc' cc-index-table.paths | \
     wget -O "$2" "$1"
   ' _
 
+rm cc-index-table.paths
 cd -
 ```
 
