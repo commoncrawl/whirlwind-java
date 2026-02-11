@@ -263,15 +263,16 @@ public class Duck {
 
 			// Count total records
 			out.printf("Total records for crawl: %s%n", crawl);
-			try (ResultSet rs = executeWithRetry(stmt, "SELECT COUNT(*) as cnt FROM ccindex")) {
+			try (ResultSet rs = executeWithRetry(stmt,
+					"SELECT COUNT(*) as cnt FROM ccindex " + "WHERE subset = 'warc' AND crawl = '"+crawl+"'")) {
 				if (rs.next()) {
 					out.println(rs.getLong("cnt"));
 				}
 			}
 
 			// Query for our specific row
-			String selectQuery = "" + "SELECT * FROM ccindex WHERE subset = 'warc' " + "AND crawl = 'CC-MAIN-2024-22' "
-					+ "AND url_host_tld = 'org' " + "AND url_host_registered_domain = 'wikipedia.org' "
+			String selectQuery = "SELECT * FROM ccindex WHERE subset = 'warc' AND crawl = '" + crawl + "' "
+					+ "AND url_host_tld = 'org' AND url_host_registered_domain = 'wikipedia.org' "
 					+ "AND url = 'https://an.wikipedia.org/wiki/Escopete'";
 
 			out.println("Our one row:");
