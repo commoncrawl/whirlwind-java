@@ -791,12 +791,18 @@ The program then writes that one record into a local Parquet file, does a second
 ### Bonus: download a full crawl index and query with DuckDB
 
 If you want to run many of these queries, and you have a lot of disk space, you'll want to download the 300 gigabyte index and query it repeatedly. Run
+All of these scripts run the same SQL query and should return the same record (written as a parquet file).
 
 ```shell
 aws s3 sync s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/subset=warc/ .'
 ```
 
-or (if you don't have access through the AWS CLI):
+> [!IMPORTANT]
+> If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```
+
+
+
+If, by any other chance, you don't have access through the AWS CLI:
 
 ```shell
 mkdir -p cc-main-2024-22

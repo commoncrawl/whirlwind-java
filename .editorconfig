@@ -3,17 +3,22 @@
 root = true
 
 [*]
-end_of_line = lf
 insert_final_newline = true
 
+[{*.warc, *.warc.wet, *.warc.wat}]
+insert_final_newline = false
+
 [*.java]
+end_of_line = lf
 charset = utf-8
 indent_style = space
 indent_size = 4
 
 [Makefile]
+end_of_line = lf
 indent_style = tab
 
 [*.yaml]
+end_of_line = lf
 indent_style = space
 indent_size = 2
