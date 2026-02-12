@@ -801,8 +801,6 @@ aws s3 sync s3://commoncrawl/cc-index/table/cc-main/warc/crawl=CC-MAIN-2024-22/s
 > [!IMPORTANT]
 > If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```
 
-
-
 If, by any other chance, you don't have access through the AWS CLI:
 
 ```shell
@@ -824,7 +822,18 @@ rm cc-index-table.paths
 cd -
 ```
 
-then you can run `make duck_local_files LOCAL_DIR=/path/to/the/downloaded/data` to run the same query as above, but this time using your local copy of the index files.
+The structure should be something like this: 
+```shell
+tree my_data
+my_data
+└── crawl=CC-MAIN-2024-22
+    └── subset=warc
+        ├── part-00000-4dd72944-e9c0-41a1-9026-dfd2d0615bf2.c000.gz.parquet
+        ├── part-00001-4dd72944-e9c0-41a1-9026-dfd2d0615bf2.c000.gz.parquet
+        ├── part-00002-4dd72944-e9c0-41a1-9026-dfd2d0615bf2.c000.gz.parquet
+```
+
+Then, you can run `make duck_local_files LOCAL_DIR=/path/to/the/downloaded/data` to run the same query as above, but this time using your local copy of the index files.
 
 > [!IMPORTANT]
 > If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```
