@@ -790,8 +790,7 @@ The program then writes that one record into a local Parquet file, does a second
 
 ### Bonus: download a full crawl index and query with DuckDB
 
-If you want to run many of these queries, and you have a lot of disk space, you'll want to download the 300 gigabyte index and query it repeatedly. Run
-All of these scripts run the same SQL query and should return the same record (written as a parquet file).
+If you want to run many of these queries, and you have a lot of disk space, you'll want to download the 300 gigabyte index and query it repeatedly. Run:
 
 ```shell
 mkdir -p 'crawl=CC-MAIN-2024-22/subset=warc'
@@ -822,7 +821,7 @@ rm cc-index-table.paths
 cd -
 ```
 
-The structure should be something like this: 
+In both ways, the file structure should be something like this: 
 ```shell
 tree my_data
 my_data
@@ -835,10 +834,8 @@ my_data
 
 Then, you can run `make duck_local_files LOCAL_DIR=/path/to/the/downloaded/data` to run the same query as above, but this time using your local copy of the index files.
 
-> [!IMPORTANT]
-> If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```
+Both `make duck_ccf_local_files` and `make duck_local_files LOCAL_DIR=/path/to/the/downloaded/data` run the same SQL query and should return the same record (written as a parquet file).
 
-All of these scripts run the same SQL query and should return the same record (written as a parquet file).
 
 ## Bonus 2: combine some steps
 
