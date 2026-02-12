@@ -44,6 +44,12 @@ duck_ccf_local_files: build
 	@echo "warning! only works on Common Crawl Foundation's development machine"
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args="ccf_local_files"
 
+duck_local_files: build
+ifndef LOCAL_DIR
+	$(error LOCAL_DIR is required. Usage: make duck_local_files LOCAL_DIR=/path/to/data)
+endif
+	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args="local_files $(LOCAL_DIR)"
+
 duck_cloudfront: build
 	@echo "warning! this might take 1-10 minutes"
 	mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.Duck -Dexec.args="cloudfront"

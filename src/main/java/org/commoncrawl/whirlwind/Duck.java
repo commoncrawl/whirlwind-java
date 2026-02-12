@@ -39,7 +39,7 @@ public class Duck {
 	private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
 	public enum Algorithm {
-		CCF_LOCAL_FILES("ccf_local_files"), CLOUDFRONT("cloudfront");
+		CCF_LOCAL_FILES("ccf_local_files"), CLOUDFRONT("cloudfront"), LOCAL_FILES("local_files");
 
 		private final String name;
 
@@ -114,8 +114,13 @@ public class Duck {
 	/**
 	 * Gets the list of parquet files to query based on the algorithm.
 	 */
-	public static List<String> getFiles(Algorithm algo, String crawl) throws IOException {
+	public static List<String> getFiles(Algorithm algo, String crawl, String localPrefix) throws IOException {
 		switch (algo) {
+		case LOCAL_FILES: {
+			Path indexPath = Path.of(localPrefix);
+			return getLocalParquetFiles(indexPath);
+		}
+
 		case CCF_LOCAL_FILES: {
 			Path indexPath = Path.of("/home/cc-pds/commoncrawl/cc-index/table/cc-main/warc", "crawl=" + crawl,
 					"subset=warc");
@@ -141,6 +146,23 @@ public class Duck {
 		default:
 			throw new IllegalArgumentException("Unknown algorithm: " + algo);
 		}
+	}
+
+	private static List<String> getLocalParquetFiles(Path indexPath) throws IOException {
+		if (!Files.isDirectory(indexPath)) {
+			System.err.println("Directory not found: " + indexPath);
+			System.exit(1);
+		}
+
+		List<String> files = Files.walk(indexPath).map(Path::toString).filter(string -> string.endsWith(".parquet"))
+				.collect(Collectors.toList());
+
+		if (files.isEmpty()) {
+			System.err.println("No parquet files found in: " + indexPath);
+			System.exit(1);
+		}
+
+		return files;
 	}
 
 	private static List<String> getLocalParquetFiles(Path indexPath, String prefix, String crawl) throws IOException {
@@ -190,6 +212,7 @@ public class Duck {
 	public static void main(String[] args) {
 		String crawl = "CC-MAIN-2024-22";
 		Algorithm algo = Algorithm.CLOUDFRONT;
+		String localPrefix = "/home/cc-pds/commoncrawl/cc-index/table/cc-main/warc";
 
 		if (args.length > 0) {
 			if ("help".equalsIgnoreCase(args[0]) || "--help".equals(args[0]) || "-h".equals(args[0])) {
@@ -201,8 +224,17 @@ public class Duck {
 			System.out.println("Using algorithm: " + algo.getName());
 		}
 
+		if (algo == Algorithm.LOCAL_FILES) {
+			if (args.length < 2) {
+				System.err.println("Error: local_files algorithm requires a directory argument.");
+				printUsage();
+				System.exit(1);
+			}
+			localPrefix = args[1];
+		}
+
 		try {
-			run(algo, crawl);
+			run(algo, crawl, localPrefix);
 		} catch (Exception e) {
 			System.err.println("Error: " + e.getMessage());
 			printUsage();
@@ -210,11 +242,12 @@ public class Duck {
 		}
 	}
 
-	public static void run(Algorithm algo, String crawl) throws IOException, SQLException, InterruptedException {
+	public static void run(Algorithm algo, String crawl, String localPrefix)
+			throws IOException, SQLException, InterruptedException {
 		// Ensure stdout uses UTF-8
 		PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
 
-		List<String> files = getFiles(algo, crawl);
+		List<String> files = getFiles(algo, crawl, localPrefix);
 		String filesList = files.stream().map(f -> "'" + f + "'").collect(Collectors.joining(", "));
 
 		// Use in-memory DuckDB
@@ -230,15 +263,16 @@ public class Duck {
 
 			// Count total records
 			out.printf("Total records for crawl: %s%n", crawl);
-			try (ResultSet rs = executeWithRetry(stmt, "SELECT COUNT(*) as cnt FROM ccindex")) {
+			try (ResultSet rs = executeWithRetry(stmt,
+					"SELECT COUNT(*) as cnt FROM ccindex " + "WHERE subset = 'warc' AND crawl = '" + crawl + "'")) {
 				if (rs.next()) {
 					out.println(rs.getLong("cnt"));
 				}
 			}
 
 			// Query for our specific row
-			String selectQuery = "" + "SELECT * FROM ccindex WHERE subset = 'warc' " + "AND crawl = 'CC-MAIN-2024-22' "
-					+ "AND url_host_tld = 'org' " + "AND url_host_registered_domain = 'wikipedia.org' "
+			String selectQuery = "SELECT * FROM ccindex WHERE subset = 'warc' AND crawl = '" + crawl + "' "
+					+ "AND url_host_tld = 'org' AND url_host_registered_domain = 'wikipedia.org' "
 					+ "AND url = 'https://an.wikipedia.org/wiki/Escopete'";
 
 			out.println("Our one row:");
@@ -305,13 +339,18 @@ public class Duck {
 	}
 
 	private static void printUsage() {
-		System.err.println("Usage: Duck [algorithm]");
+		System.err.println("Usage: Duck [algorithm] [local-directory]");
 		System.err.println();
 		System.err.println("Query Common Crawl index using DuckDB.");
 		System.err.println();
 		System.err.println("Algorithms:");
-		System.err.println("  ccf_local_files  Use local parquet files from /home/cc-pds/commoncrawl/...");
+		System.err.println("  local_files      Use local parquet files (from specified local directory)");
+		System.err.println(
+				"  ccf_local_files  Use local parquet files (default: /home/cc-pds/commoncrawl/cc-index/table/cc-main/warc)");
 		System.err.println("  cloudfront       Use CloudFront URLs (requires <crawl>.warc.paths.gz file)");
+		System.err.println();
+		System.err.println("Arguments:");
+		System.err.println("  local-directory  Local directory prefix for 'local_files' algorithm");
 		System.err.println();
 		System.err.println("Options:");
 		System.err.println("  help, --help, -h  Show this help message");
