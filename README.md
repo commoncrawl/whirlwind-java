@@ -60,7 +60,7 @@ In this whirlwind tour, we're going to look at the WARC, WET, and WAT files: the
 [WARC files](https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.0/) are a container that holds files, similar to zip and tar files. It's the standard data format used by archiving
 community, and we use it to store raw crawl data. As you can see in the file listing above, our WARC files are very large even when compressed! Luckily, we have a much smaller example to look at. 
 
-Open `whirlwind.warc` in your favorite text editor. Note that this is an uncompressed version of the file; normally we always work with these files while they are compressed. This is the WARC corresponding to the single webpage we mentioned in the introduction.
+Open `data/whirlwind.warc` in your favorite text editor. Note that this is an uncompressed version of the file; normally we always work with these files while they are compressed. This is the WARC corresponding to the single webpage we mentioned in the introduction.
 
 You'll see four records total, with the start of each record marked with the header `WARC/1.0` followed by metadata related to that particular record. The `WARC-Type` field tells you the type of each record. In our WARC file, we have:
 1) a `warcinfo` record. Every WARC has that at the start. 
@@ -72,7 +72,7 @@ You'll see four records total, with the start of each record marked with the hea
 
 WET (WARC Encapsulated Text) files only contain the body text of web pages parsed from the HTML and exclude any HTML code, images, or other media. This makes them useful for text analysis and natural language processing (NLP) tasks.
 
-Open `whirlwind.warc.wet`: this is the WET derived from our original WARC. We can see that it's still in WARC format with two records: 
+Open `data/whirlwind.warc.wet`: this is the WET derived from our original WARC. We can see that it's still in WARC format with two records: 
 1) a `warcinfo` record.
 2) a `conversion` record: the parsed text with HTTP headers removed.
 
@@ -80,7 +80,7 @@ Open `whirlwind.warc.wet`: this is the WET derived from our original WARC. We ca
 
 WAT (Web ARChive Timestamp) files contain metadata associated with the crawled web pages (e.g. parsed data from the HTTP response headers, links recovered from HTML pages, server response codes etc.). They are useful for analysis that requires understanding the structure of the web.
 
-Open `whirlwind.warc.wat`: this is the WAT derived from our original WARC. Like the WET file, it's also in WARC format. It contains two records:
+Open `data/whirlwind.warc.wat`: this is the WAT derived from our original WARC. Like the WET file, it's also in WARC format. It contains two records:
 1) a `warcinfo` record.
 2) a `metadata` record: there should be one for each response in the WARC. The metadata is stored as JSON. 
 
@@ -127,7 +127,7 @@ Commands:
 
 </details>
 
-Let's iterate over our WARC, WET, and WAT files and print out the record types we looked at before. We will see the use of `ls` for listing records and offsets, and `extract` for pulling out records information (payload, headers) using the offsets as reference. ~~First, look at the code in `org.commoncrawl.whirlwind.ReadWARC`~~:
+Let's iterate over our WARC, WET, and WAT files and print out the record types we looked at before. We will see the use of `ls` for listing records and offsets, and `extract` for pulling out records information (payload, headers) using the offsets as reference:
 
 ```shell
 java -jar jwarc.jar ls data/whirlwind.warc.gz
