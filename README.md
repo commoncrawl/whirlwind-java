@@ -795,7 +795,7 @@ In case you want to run many of these queries, and you have a lot of disk space,
 > [!IMPORTANT]
 > If you happen to be using the Common Crawl Foundation development server, we've already downloaded these files, and you can run ```make duck_ccf_local_files```
 
-To download the crawl index, please use cc-downloader, which is a polite downloader for Common Crawl data:  
+To download the crawl index, please use [cc-downloader](https://github.com/commoncrawl/cc-downloader), which is a polite downloader for Common Crawl data:  
 
 ```shell
 cargo install cc-downloader
