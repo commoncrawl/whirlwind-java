@@ -92,7 +92,7 @@ Now that we've looked at the uncompressed versions of these files to understand 
 
 The [JWarc](https://github.com/iipc/jwarc) Java library lets us read and write WARC files both programmatically and via a CLI.
 
-You should download the [JWarc](https://github.com/iipc/jwarc)'s JAR using `make get_jwarc` which should download the JAR in the root directory. 
+You should download the [JWarc](https://github.com/iipc/jwarc)'s JAR using `make jwarc.jar` which should download the JAR in the root directory. 
 If you download it yourself, we recommend you to rename it to remove the version from the jar filename, so you can copy-paste the commands directly.
 You can now explore the CLI commands available by running:
 
@@ -434,7 +434,7 @@ We can create our own CDXJ index from the local WARCs by running:
 
 ```make cdxj```
 
-This uses the JWARC library and, partially, a home-cooked code that we wrote to support WET and WAT records, to generate CDXJ index files for our WARC files by running the code below: 
+This uses the JWARC library to generate CDXJ index files for our WARC files by running the code below: 
 
 <details>
   <summary>Click to view code</summary>
@@ -442,8 +442,8 @@ This uses the JWARC library and, partially, a home-cooked code that we wrote to 
 ```
 creating *.cdxj index files from the local warcs
 java -jar jwarc.jar cdxj data/whirlwind.warc.gz > whirlwind.warc.cdxj
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wet.gz --records conversion" > whirlwind.warc.wet.cdxj
-mvn -q exec:java -Dexec.mainClass=org.commoncrawl.whirlwind.CdxjIndexer -Dexec.args="data/whirlwind.warc.wat.gz --records metadata" > whirlwind.warc.wat.cdxj
+java -jar jwarc.jar cdxj data/whirlwind.warc.wet.gz --record-type conversion > whirlwind.warc.wet.cdxj
+java -jar jwarc.jar cdxj data/whirlwind.warc.wat.gz --record-type metadata > whirlwind.warc.wat.cdxj
 ```
 
 </details>

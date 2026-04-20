@@ -56,7 +56,7 @@ duck_cloudfront: build
 
 jwarc.jar:
 	@echo "downloading JWarc JAR"
-	curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.33.0/jwarc-0.33.0.jar
+	curl -fL -o jwarc.jar https://github.com/iipc/jwarc/releases/download/v0.35.0/jwarc-0.35.0.jar
 
 wreck_the_warc: build jwarc.jar
 	@echo
